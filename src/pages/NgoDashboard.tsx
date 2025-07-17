@@ -6,12 +6,26 @@ import { toast } from 'react-hot-toast';
 import { RequireAuth } from '../components/RequireAuth';
 
 type EventRegistrationWithDetails = Tables<'event_registrations'> & {
-  events: Tables<'events'>;
-  users: Tables<'users'>;
+  events: {
+    id: string;
+    title: string;
+    description: string;
+    date: string;
+    location: string;
+  };
+  users: {
+    id: string;
+    full_name: string;
+    email: string | null;
+  };
 };
 
 type NgoEnrollmentWithDetails = Tables<'ngo_enrollments'> & {
-  users: Tables<'users'>;
+  users: {
+    id: string;
+    full_name: string;
+    email: string | null;
+  };
 };
 
 export function NgoDashboard() {
@@ -23,98 +37,208 @@ export function NgoDashboard() {
   const [currentTab, setCurrentTab] = useState<'events' | 'volunteers'>('events');
 
   useEffect(() => {
-    const fetchRequests = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        console.log('🔄 Starting NGO Dashboard data fetch...');
 
-      // Fetch the NGO profile for the current user
-      const { data: ngoProfile, error: ngoProfileError } = await supabase
-        .from('ngo_profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (ngoProfileError || !ngoProfile) {
-        console.log('No NGO profile found for user:', user.id, ngoProfileError);
-        setRequests({ eventRegistrations: [], ngoEnrollments: [] });
-        setLoading(false);
-        return;
-      }
-
-      console.log('NGO Profile found:', ngoProfile.id);
-
-      // First, get all events for this NGO
-      const { data: ngoEvents, error: eventsError } = await supabase
-        .from('events')
-        .select('id')
-        .eq('ngo_id', ngoProfile.id);
-
-      if (eventsError) {
-        console.error('Error fetching NGO events:', eventsError);
-        setRequests({ eventRegistrations: [], ngoEnrollments: [] });
-        setLoading(false);
-        return;
-      }
-
-      console.log('NGO Events found:', ngoEvents);
-
-      const eventIds = ngoEvents?.map(event => event.id) || [];
-
-      // Now fetch event registrations for these events
-      let eventRegistrations: EventRegistrationWithDetails[] = [];
-      if (eventIds.length > 0) {
-        const { data: registrations, error: registrationsError } = await supabase
-          .from('event_registrations')
-          .select(`*, events (*), users (*)`)
-          .eq('status', 'pending')
-          .in('event_id', eventIds)
-          .returns<EventRegistrationWithDetails[]>();
-
-        if (registrationsError) {
-          console.error('Error fetching event registrations:', registrationsError);
-        } else {
-          eventRegistrations = registrations || [];
-          console.log('Event registrations found:', eventRegistrations.length);
+        // Get current user
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        console.log('👤 User data:', user);
+        
+        if (userError) {
+          console.error('❌ User error:', userError);
+          throw userError;
         }
+        
+        if (!user) {
+          console.log('⚠️ No user found');
+          return;
+        }
+
+        // Get NGO profile with detailed logging
+        console.log('🔍 Querying NGO profile for user_id:', user.id);
+        const { data: ngoProfile, error: ngoError } = await supabase
+          .from('ngo_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        console.log('🏢 NGO Profile query result:', { ngoProfile, ngoError });
+
+        if (ngoError) {
+          console.error('❌ NGO profile error:', ngoError);
+          // Let's also check if there are ANY NGO profiles
+          const { data: allNgos, error: allNgosError } = await supabase
+            .from('ngo_profiles')
+            .select('*');
+          console.log('📋 All NGO profiles in database:', { allNgos, allNgosError });
+          throw ngoError;
+        }
+
+        if (!ngoProfile) {
+          console.log('⚠️ No NGO profile found for user');
+          // Let's check what NGO profiles exist
+          const { data: allNgos, error: allNgosError } = await supabase
+            .from('ngo_profiles')
+            .select('*');
+          console.log('📋 All NGO profiles in database:', { allNgos, allNgosError });
+          setRequests({ eventRegistrations: [], ngoEnrollments: [] });
+          setLoading(false);
+          return;
+        }
+
+        console.log('✅ NGO Profile found:', ngoProfile);
+
+        // Get events for this NGO with detailed logging
+        console.log('🔍 Querying events for ngo_id:', ngoProfile.id);
+        const { data: events, error: eventsError } = await supabase
+          .from('events')
+          .select('*')
+          .eq('ngo_id', ngoProfile.id);
+
+        console.log('📅 Events query result:', { events, eventsError });
+
+        if (eventsError) {
+          console.error('❌ Events error:', eventsError);
+          throw eventsError;
+        }
+
+        const eventIds = events?.map(event => event.id) || [];
+        console.log('📋 Event IDs for NGO:', eventIds);
+
+        // Let's also check ALL events in the database
+        const { data: allEvents, error: allEventsError } = await supabase
+          .from('events')
+          .select('*');
+        console.log('📊 All events in database:', { allEvents, allEventsError });
+
+        // Get event registrations with detailed info
+        let eventRegistrations: EventRegistrationWithDetails[] = [];
+        if (eventIds.length > 0) {
+          console.log('🔍 Querying event registrations for event_ids:', eventIds);
+          const { data: registrations, error: registrationsError } = await supabase
+            .from('event_registrations')
+            .select(`
+              *,
+              events (
+                id,
+                title,
+                description,
+                date,
+                location
+              ),
+              users (
+                id,
+                full_name,
+                email
+              )
+            `)
+            .in('event_id', eventIds)
+            .eq('status', 'pending');
+
+          console.log('📝 Event registrations query result:', { registrations, registrationsError });
+
+          if (registrationsError) {
+            console.error('❌ Event registrations error:', registrationsError);
+            throw registrationsError;
+          }
+
+          eventRegistrations = registrations || [];
+        } else {
+          console.log('⚠️ No events found for NGO, skipping event registrations query');
+        }
+
+        // Let's also check ALL event registrations in the database
+        const { data: allRegistrations, error: allRegistrationsError } = await supabase
+          .from('event_registrations')
+          .select('*');
+        console.log('📊 All event registrations in database:', { allRegistrations, allRegistrationsError });
+
+        // Get NGO enrollments with detailed logging
+        console.log('🔍 Querying NGO enrollments for ngo_id:', ngoProfile.id);
+        const { data: ngoEnrollments, error: enrollmentsError } = await supabase
+          .from('ngo_enrollments')
+          .select(`
+            *,
+            users (
+              id,
+              full_name,
+              email
+            )
+          `)
+          .eq('ngo_id', ngoProfile.id)
+          .eq('status', 'pending');
+
+        console.log('👥 NGO enrollments query result:', { ngoEnrollments, enrollmentsError });
+
+        if (enrollmentsError) {
+          console.error('❌ NGO enrollments error:', enrollmentsError);
+          throw enrollmentsError;
+        }
+
+        // Let's also check ALL NGO enrollments in the database
+        const { data: allEnrollments, error: allEnrollmentsError } = await supabase
+          .from('ngo_enrollments')
+          .select('*');
+        console.log('📊 All NGO enrollments in database:', { allEnrollments, allEnrollmentsError });
+
+        console.log('📊 Final data summary:', {
+          userId: user.id,
+          ngoProfileId: ngoProfile.id,
+          ngoProfileName: ngoProfile.name,
+          eventsCount: events?.length || 0,
+          eventIds: eventIds,
+          eventRegistrationsCount: eventRegistrations.length,
+          ngoEnrollmentsCount: ngoEnrollments?.length || 0,
+          eventRegistrations: eventRegistrations,
+          ngoEnrollments: ngoEnrollments
+        });
+
+        setRequests({
+          eventRegistrations,
+          ngoEnrollments: ngoEnrollments || []
+        });
+
+      } catch (error) {
+        console.error('💥 Error fetching NGO dashboard data:', error);
+        toast.error('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+        console.log('✅ NGO Dashboard data fetch completed');
       }
-
-      // Fetch NGO enrollments
-      const { data: ngoEnrollments, error: enrollmentsError } = await supabase
-        .from('ngo_enrollments')
-        .select(`*, users (*)`)
-        .eq('status', 'pending')
-        .eq('ngo_id', ngoProfile.id)
-        .returns<NgoEnrollmentWithDetails[]>();
-
-      if (enrollmentsError) {
-        console.error('Error fetching NGO enrollments:', enrollmentsError);
-      }
-
-      console.log('NGO enrollments found:', ngoEnrollments?.length || 0);
-
-      setRequests({
-        eventRegistrations,
-        ngoEnrollments: ngoEnrollments || []
-      });
-      setLoading(false);
     };
 
-    fetchRequests();
+    fetchData();
 
-    const channel = supabase.channel('ngo-requests')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'event_registrations'
-      }, fetchRequests)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'ngo_enrollments'
-      }, fetchRequests)
-      .subscribe();
+    // Subscribe to real-time changes with detailed logging
+    console.log('🔔 Setting up real-time subscriptions...');
+    const channel = supabase
+      .channel('dashboard-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'event_registrations' },
+        (payload) => {
+          console.log('🔄 Event registration change:', payload);
+          fetchData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'ngo_enrollments' },
+        (payload) => {
+          console.log('🔄 NGO enrollment change:', payload);
+          fetchData();
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Subscription status:', status);
+      });
 
-    return () => { channel.unsubscribe(); };
+    return () => {
+      console.log('🧹 Cleaning up subscriptions...');
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleRequest = async (
