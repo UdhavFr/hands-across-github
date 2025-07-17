@@ -1,6 +1,7 @@
+
 // src/App.tsx
 import { Toaster } from 'react-hot-toast';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { EventsPage } from './pages/EventsPage';
@@ -12,23 +13,19 @@ import { supabase } from './lib/supabase';
 import { RequireAuth } from './components/RequireAuth';
 
 function App() {
-  const [userType, setUserType] = useState<'volunteer' | 'ngo' | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUserType(user?.user_metadata?.user_type || null);
+      await supabase.auth.getUser();
       setLoading(false);
     };
     
     checkAuth();
     
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUserType(session?.user?.user_metadata?.user_type || null);
-      }
-    );
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      // Auth state changed
+    });
     
     return () => subscription.unsubscribe();
   }, []);

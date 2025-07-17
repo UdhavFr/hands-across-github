@@ -1,5 +1,6 @@
+
 // components/RequireAuth.tsx
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { AppUser } from '../types';

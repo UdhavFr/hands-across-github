@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Calendar, MapPin, Users, Loader2 } from 'lucide-react';
 import type { Event } from '../types';
 

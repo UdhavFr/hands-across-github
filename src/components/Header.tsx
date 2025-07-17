@@ -1,5 +1,6 @@
+
 // src/components/Header.tsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Menu, Heart, LogIn, User, Clipboard, Loader2 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthModal } from './AuthModal';
@@ -50,13 +51,9 @@ export function Header() {
     };
 
     // v2 onAuthStateChange returns { data: { subscription } }
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-          fetchUserData();
-        }
-      }
-    );
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      fetchUserData();
+    });
 
     fetchUserData();
     return () => subscription.unsubscribe();
