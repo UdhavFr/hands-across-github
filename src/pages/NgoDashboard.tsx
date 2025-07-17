@@ -35,29 +35,65 @@ export function NgoDashboard() {
         .single();
 
       if (ngoProfileError || !ngoProfile) {
+        console.log('No NGO profile found for user:', user.id, ngoProfileError);
         setRequests({ eventRegistrations: [], ngoEnrollments: [] });
         setLoading(false);
         return;
       }
 
-      // Use the NGO profile's id to filter event registrations
-      const { data: eventRegistrations } = await supabase
-        .from('event_registrations')
-        .select(`*, events (*), users (*)`)
-        .eq('status', 'pending')
-        .eq('events.ngo_id', ngoProfile.id) // <-- fix here
-        .returns<EventRegistrationWithDetails[]>();
+      console.log('NGO Profile found:', ngoProfile.id);
 
-      // Use the NGO profile's id to filter enrollments
-      const { data: ngoEnrollments } = await supabase
+      // First, get all events for this NGO
+      const { data: ngoEvents, error: eventsError } = await supabase
+        .from('events')
+        .select('id')
+        .eq('ngo_id', ngoProfile.id);
+
+      if (eventsError) {
+        console.error('Error fetching NGO events:', eventsError);
+        setRequests({ eventRegistrations: [], ngoEnrollments: [] });
+        setLoading(false);
+        return;
+      }
+
+      console.log('NGO Events found:', ngoEvents);
+
+      const eventIds = ngoEvents?.map(event => event.id) || [];
+
+      // Now fetch event registrations for these events
+      let eventRegistrations: EventRegistrationWithDetails[] = [];
+      if (eventIds.length > 0) {
+        const { data: registrations, error: registrationsError } = await supabase
+          .from('event_registrations')
+          .select(`*, events (*), users (*)`)
+          .eq('status', 'pending')
+          .in('event_id', eventIds)
+          .returns<EventRegistrationWithDetails[]>();
+
+        if (registrationsError) {
+          console.error('Error fetching event registrations:', registrationsError);
+        } else {
+          eventRegistrations = registrations || [];
+          console.log('Event registrations found:', eventRegistrations.length);
+        }
+      }
+
+      // Fetch NGO enrollments
+      const { data: ngoEnrollments, error: enrollmentsError } = await supabase
         .from('ngo_enrollments')
         .select(`*, users (*)`)
         .eq('status', 'pending')
-        .eq('ngo_id', ngoProfile.id) // <-- fix here
+        .eq('ngo_id', ngoProfile.id)
         .returns<NgoEnrollmentWithDetails[]>();
 
+      if (enrollmentsError) {
+        console.error('Error fetching NGO enrollments:', enrollmentsError);
+      }
+
+      console.log('NGO enrollments found:', ngoEnrollments?.length || 0);
+
       setRequests({
-        eventRegistrations: eventRegistrations || [],
+        eventRegistrations,
         ngoEnrollments: ngoEnrollments || []
       });
       setLoading(false);
@@ -119,14 +155,14 @@ export function NgoDashboard() {
             onClick={() => setCurrentTab('events')}
           >
             <Calendar className="inline mr-2" />
-            Event Registrations
+            Event Registrations ({requests.eventRegistrations.length})
           </button>
           <button
             className={`px-4 py-2 font-medium ${currentTab === 'volunteers' ? 'border-b-2 border-rose-600 text-rose-600' : 'text-gray-500'}`}
             onClick={() => setCurrentTab('volunteers')}
           >
             <Users className="inline mr-2" />
-            Volunteer Applications
+            Volunteer Applications ({requests.ngoEnrollments.length})
           </button>
         </div>
 
@@ -144,6 +180,9 @@ export function NgoDashboard() {
                         <h3 className="font-medium">{reg.events.title}</h3>
                         <p className="text-sm text-gray-600">
                           Volunteer: {reg.users.full_name || 'Unknown'}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Email: {reg.users.email || 'No email'}
                         </p>
                       </div>
                       <div className="flex space-x-2">
