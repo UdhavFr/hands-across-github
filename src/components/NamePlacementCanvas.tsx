@@ -1,7 +1,7 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { Rnd } from 'react-rnd';
 import { Move, RotateCcw, Info } from 'lucide-react';
-import { pxToMm, mmToPx, type PxBox, type MmBox, type CanvasSize, type PdfSize } from '../utils/coords';
+import { pxToMm, type PxBox, type MmBox, type CanvasSize, type PdfSize } from '../utils/coords';
 
 interface NamePlacementCanvasProps {
   backdropDataUrl: string;
@@ -192,8 +192,8 @@ export function NamePlacementCanvas({
             <Rnd
               size={{ width: nameBox.width, height: nameBox.height }}
               position={{ x: nameBox.x, y: nameBox.y }}
-              onDrag={(e, d) => handleRndChange(d, { width: nameBox.width, height: nameBox.height })}
-              onResize={(e, direction, ref, delta, position) => {
+              onDrag={(_, d) => handleRndChange(d, { width: nameBox.width, height: nameBox.height })}
+              onResize={(_, __, ref, ___, position) => {
                 handleRndChange(position, {
                   width: parseInt(ref.style.width),
                   height: parseInt(ref.style.height)

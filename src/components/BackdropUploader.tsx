@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, AlertTriangle, CheckCircle, X, Image as ImageIcon } from 'lucide-react';
 import { calculateDPI } from '../utils/coords';

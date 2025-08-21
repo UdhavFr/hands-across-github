@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Eye, EyeOff, Type } from 'lucide-react';
 import type { PxBox } from '../utils/coords';
 

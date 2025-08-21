@@ -1,4 +1,3 @@
-import React from 'react';
 import { Upload, FileImage } from 'lucide-react';
 
 interface Template {
@@ -41,10 +40,10 @@ const PREDEFINED_TEMPLATES: Template[] = [
   }
 ];
 
-export function TemplateSelector({ 
-  onTemplateSelect, 
-  onUploadClick, 
-  selectedTemplateId 
+export function TemplateSelector({
+  onTemplateSelect,
+  onUploadClick,
+  selectedTemplateId
 }: TemplateSelectorProps) {
   return (
     <div className="bg-white rounded-lg shadow-sm border p-6">

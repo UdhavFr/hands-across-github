@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { TemplateSelector } from './TemplateSelector';
 import { BackdropUploader } from './BackdropUploader';
 import { NamePlacementCanvas } from './NamePlacementCanvas';
@@ -31,7 +31,7 @@ export function CertificateGeneratorUI({ onConfirmPlacement }: CertificateGenera
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [backdropDataUrl, setBackdropDataUrl] = useState<string>('');
   const [isUploaderOpen, setIsUploaderOpen] = useState(false);
-  const [canvasSize, setCanvasSize] = useState<CanvasSize>({ widthPx: 800, heightPx: 600 });
+  const [canvasSize] = useState<CanvasSize>({ widthPx: 800, heightPx: 600 });
   const [nameBoxPx, setNameBoxPx] = useState<PxBox>({ x: 200, y: 150, width: 400, height: 80 });
   const [nameBoxMm, setNameBoxMm] = useState<MmBox>({ xMm: 0, yMm: 0, widthMm: 0, heightMm: 0 });
 
@@ -41,7 +41,7 @@ export function CertificateGeneratorUI({ onConfirmPlacement }: CertificateGenera
     setCurrentStep('placement');
   }, []);
 
-  const handleCustomUpload = useCallback((dataUrl: string, file: File) => {
+  const handleCustomUpload = useCallback((dataUrl: string) => {
     setSelectedTemplate(null);
     setBackdropDataUrl(dataUrl);
     setCurrentStep('placement');

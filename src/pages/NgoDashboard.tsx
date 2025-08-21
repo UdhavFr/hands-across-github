@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Loader2, Users, Calendar, Check, X, ChevronDown, ChevronUp, MapPin, Clock, UserMinus, TrendingUp, Wifi, WifiOff } from 'lucide-react';
+import { Loader2, Users, Calendar, Check, X, ChevronDown, ChevronUp, MapPin, Clock, UserMinus, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Tables } from '../types/supabase';
 import { toast } from 'react-hot-toast';
@@ -38,9 +38,6 @@ type NgoEnrollmentWithDetails = Tables<'ngo_enrollments'> & {
 };
 
 // Type guard helper for safe property access
-function hasKey<T extends object>(obj: T | undefined, key: PropertyKey): key is keyof T {
-  return !!obj && typeof obj === 'object' && key in obj;
-}
 
 export function NgoDashboard() {
   const [loading, setLoading] = useState(true);
