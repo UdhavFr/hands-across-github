@@ -94,8 +94,8 @@ export function NgoDashboard() {
   const dashboardTabs = [
   { key: 'events', icon: Calendar, label: `My Events (${events.length})` },
   { key: 'myvolunteers', icon: Users, label: `My Volunteers (${requests.confirmedVolunteers.length})` },
-  { key: 'registrations', icon: Check, label: `Pending Registrations (${requests.eventRegistrations.length})` },
-  { key: 'volunteers', icon: Users, label: `Volunteer Applications (${requests.eventRegistrations.length})` },
+  { key: 'registrations', icon: Check, label: `Event Applications (${requests.eventRegistrations.length})` },
+  { key: 'volunteers', icon: Users, label: `Volunteer Applications (${requests.ngoEnrollments.length})` },
   { key: 'certificates', icon: ClipboardIcon, label: 'Certificates' },
   { key: 'analytics', icon: TrendingUp, label: 'Analytics' }
   ];
