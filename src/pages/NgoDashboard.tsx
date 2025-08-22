@@ -157,12 +157,21 @@ export function NgoDashboard() {
           .select(`id, user_id, ngo_id, status, created_at, updated_at, users(id, full_name, email)`)
           .eq('ngo_id', ngoProfile.id)
           .eq('status', 'pending'),
+        // Debug: Let's also check what ngo_enrollments exist
+        supabase.from('ngo_enrollments')
+          .select('*')
+          .eq('ngo_id', ngoProfile.id),
         supabase.from('ngo_enrollments')
           .select(`id, user_id, ngo_id, status, created_at, updated_at, users(id, full_name, email)`)
           .eq('ngo_id', ngoProfile.id)
           .eq('status', 'confirmed')
           .order('created_at', { ascending: false }),
       ]);
+
+      // Debug logging
+      console.log('NGO Profile ID:', ngoProfile.id);
+      console.log('All NGO enrollments for this NGO:', enrollRes.data);
+      console.log('Pending NGO enrollments:', enrollRes.data);
 
       // Build events with participants
       const eventList = eventsRes.data ?? [];
