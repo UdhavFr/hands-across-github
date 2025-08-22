@@ -137,14 +137,22 @@ export function NgoDashboard() {
         confirmedVolRes,
       ] = await Promise.all([
         supabase.from('events').select('*').eq('ngo_id', ngoProfile.id).order('date'),
-        supabase.from('event_registrations')
-          .select(`
-            id, user_id, event_id, status, created_at, updated_at,
-            events!inner(id, title, description, date, location, ngo_id),
-            users(id, full_name, email)
-          `)
-          .eq('status', 'pending')
-          .eq('events.ngo_id', ngoProfile.id),
+        // First get all events for this NGO, then get pending registrations for those events
+        supabase.from('events').select('id').eq('ngo_id', ngoProfile.id).then(async (eventsResult) => {
+          if (eventsResult.error || !eventsResult.data) return { data: [], error: eventsResult.error };
+          
+          const eventIds = eventsResult.data.map(e => e.id);
+          if (eventIds.length === 0) return { data: [], error: null };
+          
+          return supabase.from('event_registrations')
+            .select(`
+              id, user_id, event_id, status, created_at, updated_at,
+              events!event_registrations_event_id_fkey(id, title, description, date, location, ngo_id),
+              users(id, full_name, email)
+            `)
+            .eq('status', 'pending')
+            .in('event_id', eventIds);
+        }),
         supabase.from('ngo_enrollments')
           .select(`id, user_id, ngo_id, status, created_at, updated_at, users(id, full_name, email)`)
           .eq('ngo_id', ngoProfile.id)
