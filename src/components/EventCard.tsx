@@ -1,6 +1,9 @@
 
 import { Calendar, MapPin, Users, Loader2 } from 'lucide-react';
+import { DistanceDisplay } from './DistanceDisplay';
+import { useLocation } from '../hooks/useLocation';
 import type { Event } from '../types';
+import type { LocationData } from '../types/location';
 
 interface EventCardProps {
   event: Event;
@@ -17,6 +20,17 @@ export function EventCard({
   registrationStatus,
   isDisabled
 }: EventCardProps) {
+  const { location: userLocation } = useLocation();
+
+  // Create location data from event if coordinates are available
+  const eventLocation: LocationData | null = (event as any).latitude && (event as any).longitude ? {
+    address: (event as any).address || event.location,
+    city: (event as any).city || event.location.split(',')[0] || 'Unknown',
+    state: 'Unknown',
+    country: 'India',
+    latitude: Number((event as any).latitude),
+    longitude: Number((event as any).longitude)
+  } : null;
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
       <img
@@ -33,9 +47,20 @@ export function EventCard({
           <span>{new Date(event.date).toLocaleDateString()}</span>
         </div>
         
-        <div className="mt-2 flex items-center text-gray-500">
-          <MapPin className="h-5 w-5 mr-2" />
-          <span>{event.location}</span>
+        <div className="mt-2">
+          {eventLocation && eventLocation.latitude && eventLocation.longitude ? (
+            <DistanceDisplay 
+              targetLocation={eventLocation} 
+              userLocation={userLocation || undefined}
+              showDirection={false}
+              compact={false}
+            />
+          ) : (
+            <div className="flex items-center text-gray-500">
+              <MapPin className="h-5 w-5 mr-2" />
+              <span>{event.location}</span>
+            </div>
+          )}
         </div>
         
         <div className="mt-2 flex items-center text-gray-500">
