@@ -126,9 +126,6 @@ export function Header() {
             <Link to="/ngos" className={`hover:text-rose-600 transition-colors ${isActive('/ngos') ? 'text-rose-600 font-medium' : ''}`}>
               NGOs
             </Link>
-            <Link to="/certificate-generator" className={`hover:text-rose-600 transition-colors ${isActive('/certificate-generator') ? 'text-rose-600 font-medium' : ''}`}>
-              Certificates
-            </Link>
 
             {user ? (
               <div className="flex items-center gap-4 user-menu-container">

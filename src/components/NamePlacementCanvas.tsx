@@ -182,6 +182,7 @@ export function NamePlacementCanvas({
             src={backdropDataUrl}
             alt="Certificate backdrop"
             className="w-full h-full object-cover"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', left: 0, top: 0, zIndex: 1 }}
             onLoad={() => {
               setIsImageLoaded(true);
               updateCanvasSize();
@@ -203,6 +204,7 @@ export function NamePlacementCanvas({
               minWidth={50}
               minHeight={20}
               className="border-2 border-rose-500 bg-rose-500/20 backdrop-blur-sm"
+              style={{ zIndex: 2 }}
               enableResizing={{
                 top: true,
                 right: true,

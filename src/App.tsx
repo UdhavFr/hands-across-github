@@ -70,10 +70,7 @@ function App() {
               </RequireAuth>
             } 
           />
-          <Route 
-            path="/certificate-generator" 
-            element={<CertificateGeneratorUI />} 
-          />
+          {/* Removed /certificate-generator route: CertificateGeneratorUI is NGO-only and accessible via dashboard */}
         </Routes>
       </div>
     </BrowserRouter>

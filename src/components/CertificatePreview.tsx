@@ -127,13 +127,16 @@ export function CertificatePreview({
             className="relative w-full bg-gray-100 rounded-lg overflow-hidden"
             style={{ aspectRatio: '297/210' }}
           >
+
             <img
               src={backdropDataUrl}
               alt="Certificate backdrop with text preview"
               className="w-full h-full object-cover"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', left: 0, top: 0, zIndex: 1 }}
             />
 
             {/* Text overlay positioned exactly where the name box is */}
+
             <div
               className="absolute flex items-center justify-center overflow-hidden"
               style={{
@@ -141,23 +144,34 @@ export function CertificatePreview({
                 top: `${(nameBoxPx.y / canvasSize.heightPx) * 100}%`,
                 width: `${(nameBoxPx.width / canvasSize.widthPx) * 100}%`,
                 height: `${(nameBoxPx.height / canvasSize.heightPx) * 100}%`,
+                zIndex: 2,
               }}
             >
               <div
-                className="w-full h-full flex items-center px-2"
+                className="w-full h-full flex px-2"
                 style={{
-                  justifyContent: textAlign === 'left' ? 'flex-start' : textAlign === 'right' ? 'flex-end' : 'center'
+                  alignItems: 'center',
+                  justifyContent: textAlign === 'left' ? 'flex-start' : textAlign === 'right' ? 'flex-end' : 'center',
+                  position: 'relative',
                 }}
               >
+                {/* Vertically center text block by measuring text height and offsetting */}
                 <span
                   style={{
                     fontSize: `${fontSize}px`,
                     fontFamily,
                     color: textColor,
                     textAlign,
-                    lineHeight: '1.2',
+                    lineHeight: 1.2,
                     wordBreak: 'break-word',
-                    textShadow: '1px 1px 2px rgba(255,255,255,0.8)'
+                    textShadow: '1px 1px 2px rgba(255,255,255,0.8)',
+                    display: 'inline-block',
+                    width: '100%',
+                    // Center text block vertically in the box
+                    position: 'absolute',
+                    top: '50%',
+                    left: 0,
+                    transform: 'translateY(-50%)',
                   }}
                   className="font-medium"
                 >

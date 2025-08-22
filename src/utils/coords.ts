@@ -1,3 +1,18 @@
+// PDF A4 landscape size constant
+export const PDF_SIZE: PdfSize = { widthMm: 297, heightMm: 210 };
+
+
+/**
+ * Compute contain-fit for an image inside a container (returns {width, height, offsetX, offsetY, scale})
+ */
+export function computeContainFit(containerW: number, containerH: number, imageW: number, imageH: number) {
+  const scale = Math.min(containerW / imageW, containerH / imageH);
+  const width = imageW * scale;
+  const height = imageH * scale;
+  const offsetX = (containerW - width) / 2;
+  const offsetY = (containerH - height) / 2;
+  return { width, height, offsetX, offsetY, scale };
+}
 // Coordinate conversion utilities for certificate generation
 export interface PxBox {
   x: number;

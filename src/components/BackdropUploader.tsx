@@ -107,8 +107,9 @@ export function BackdropUploader({ onImageUpload, onClose, isOpen }: BackdropUpl
     maxSize: 10 * 1024 * 1024, // 10MB
   });
 
+
   const handleConfirm = () => {
-    if (preview && uploadedFile && validation?.isValid) {
+    if (preview && uploadedFile && validation && validation.isValid) {
       onImageUpload(preview, uploadedFile);
       handleReset();
       onClose();

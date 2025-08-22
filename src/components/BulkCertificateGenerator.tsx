@@ -1,105 +1,35 @@
 import { useState, useCallback } from 'react';
-import { Upload, Users, AlertCircle, CheckCircle, X, Play, Pause } from 'lucide-react';
+import { Users, AlertCircle, CheckCircle, X, Play, Pause } from 'lucide-react';
 import { generateBulkCertificates, validateParticipants, getRecommendedBatchSize, type BulkGenerationProgress } from '../utils/files';
-import { type EventData, type NgoData, type TemplateOptions, type Participant } from '../utils/certificate';
+import { type EventData, type NgoData, type Participant } from '../utils/certificate';
+
 
 interface BulkCertificateGeneratorProps {
   event: EventData;
   ngo: NgoData;
-  template: TemplateOptions;
+  participants: Participant[];
   onClose: () => void;
 }
 
-export function BulkCertificateGenerator({ event, ngo, template, onClose }: BulkCertificateGeneratorProps) {
-  const [participants, setParticipants] = useState<Participant[]>([]);
+export function BulkCertificateGenerator({ event, ngo, participants: initialParticipants, onClose }: BulkCertificateGeneratorProps) {
+  const [participants] = useState<Participant[]>(initialParticipants || []);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState<BulkGenerationProgress | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
-  const [csvInput, setCsvInput] = useState('');
+  // CSV input is not needed for admin mass generation
+  // const [csvInput, setCsvInput] = useState('');
 
-  // Sample CSV data for demonstration
-  const sampleCsv = `name,email,id
-John Doe,john@example.com,user-001
-Jane Smith,jane@example.com,user-002
-Bob Johnson,bob@example.com,user-003`;
 
-  const parseCsvData = useCallback((csvText: string) => {
-    const lines = csvText.trim().split('\n');
-    if (lines.length < 2) {
-      setErrors(['CSV must have at least a header row and one data row']);
-      return [];
-    }
 
-    const header = lines[0].split(',').map(h => h.trim().toLowerCase());
-    const nameIndex = header.findIndex(h => h === 'name' || h === 'full_name');
-    const emailIndex = header.findIndex(h => h === 'email');
-    const idIndex = header.findIndex(h => h === 'id' || h === 'user_id');
 
-    if (nameIndex === -1) {
-      setErrors(['CSV must have a "name" or "full_name" column']);
-      return [];
-    }
 
-    if (idIndex === -1) {
-      setErrors(['CSV must have an "id" or "user_id" column']);
-      return [];
-    }
-
-    const participants: Participant[] = [];
-    const parseErrors: string[] = [];
-
-    for (let i = 1; i < lines.length; i++) {
-      const row = lines[i].split(',').map(cell => cell.trim());
-      
-      if (row.length !== header.length) {
-        parseErrors.push(`Row ${i + 1}: Column count mismatch`);
-        continue;
-      }
-
-      const name = row[nameIndex]?.replace(/['"]/g, '');
-      const email = emailIndex >= 0 ? row[emailIndex]?.replace(/['"]/g, '') : '';
-      const id = row[idIndex]?.replace(/['"]/g, '');
-
-      if (!name) {
-        parseErrors.push(`Row ${i + 1}: Name is required`);
-        continue;
-      }
-
-      if (!id) {
-        parseErrors.push(`Row ${i + 1}: ID is required`);
-        continue;
-      }
-
-      participants.push({ name, email, id });
-    }
-
-    setErrors(parseErrors);
-    return participants;
-  }, []);
-
-  const handleCsvInputChange = useCallback((value: string) => {
-    setCsvInput(value);
-    if (value.trim()) {
-      const parsed = parseCsvData(value);
-      setParticipants(parsed);
-    } else {
-      setParticipants([]);
-      setErrors([]);
-    }
-  }, [parseCsvData]);
-
-  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      handleCsvInputChange(text);
-    };
-    reader.readAsText(file);
-  }, [handleCsvInputChange]);
+  // Provide a default template for now (should be replaced with real template selection)
+  const defaultTemplate = {
+    backdropDataUrl: '', // TODO: Provide a real image or let admin select
+    nameBoxPx: { x: 100, y: 100, width: 200, height: 50 },
+    canvasPxSize: { widthPx: 800, heightPx: 600 },
+  };
 
   const validateAndStartGeneration = useCallback(async () => {
     const validationErrors = validateParticipants(participants);
@@ -122,7 +52,7 @@ Bob Johnson,bob@example.com,user-003`;
         participants,
         event,
         ngo,
-        template,
+        defaultTemplate,
         {
           batchSize,
           signal: controller.signal,
@@ -154,7 +84,7 @@ Bob Johnson,bob@example.com,user-003`;
       setIsGenerating(false);
       setAbortController(null);
     }
-  }, [participants, event, ngo, template]);
+  }, [participants, event, ngo]);
 
   const handleCancelGeneration = useCallback(() => {
     if (abortController) {
@@ -192,45 +122,21 @@ Bob Johnson,bob@example.com,user-003`;
         </p>
       </div>
 
-      {/* CSV Input */}
+      {/* Participants Summary for Admin */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">Participant Data</h3>
-          <div className="flex gap-2">
-            <input
-              type="file"
-              accept=".csv"
-              onChange={handleFileUpload}
-              className="hidden"
-              id="csv-upload"
-            />
-            <label
-              htmlFor="csv-upload"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors"
-            >
-              <Upload className="w-4 h-4" />
-              Upload CSV
-            </label>
-            <button
-              onClick={() => handleCsvInputChange(sampleCsv)}
-              className="px-4 py-2 text-sm text-blue-600 hover:text-blue-800 transition-colors"
-            >
-              Load Sample Data
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            CSV Data (name, email, id columns required)
-          </label>
-          <textarea
-            value={csvInput}
-            onChange={(e) => handleCsvInputChange(e.target.value)}
-            placeholder={`name,email,id\nJohn Doe,john@example.com,user-001\nJane Smith,jane@example.com,user-002`}
-            className="w-full h-32 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-          />
-        </div>
+        <h3 className="text-lg font-semibold text-gray-900">Participants</h3>
+        {participants.length === 0 ? (
+          <div className="text-gray-500">No participants found for this event.</div>
+        ) : (
+          <ul className="divide-y divide-gray-200 max-h-48 overflow-y-auto bg-white border rounded">
+            {participants.map((p) => (
+              <li key={p.id} className="px-4 py-2 flex justify-between items-center text-sm">
+                <span>{p.name}</span>
+                <span className="text-gray-400">{p.email}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Validation Results */}

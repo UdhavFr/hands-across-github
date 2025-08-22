@@ -1,5 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
+import { BulkCertificateGenerator } from '../components/BulkCertificateGenerator';
+import { CertificateGeneratorUI } from '../components/CertificateGeneratorUI';
 import { Loader2, Users, Calendar, Check, X, ChevronDown, ChevronUp, MapPin, Clock, UserMinus, TrendingUp } from 'lucide-react';
+import { Clipboard as ClipboardIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Tables } from '../types/supabase';
 import { toast } from 'react-hot-toast';
@@ -40,6 +43,22 @@ type NgoEnrollmentWithDetails = Tables<'ngo_enrollments'> & {
 // Type guard helper for safe property access
 
 export function NgoDashboard() {
+  // ...existing code...
+
+  // Debug authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      console.log('Current authenticated user:', user);
+      console.log('User ID:', user?.id);
+      console.log('User type:', user?.user_metadata?.user_type);
+    };
+    checkAuth();
+  }, []);
+
+  // State for certificate generator modal (must be inside the component)
+  const [showBulkGenerator, setShowBulkGenerator] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<{
     eventRegistrations: EventRegistrationWithDetails[];
@@ -64,12 +83,22 @@ export function NgoDashboard() {
       }[];
     }[]
   >([]);
-  const [currentTab, setCurrentTab] = useState<'events' | 'registrations' | 'volunteers' | 'myvolunteers' | 'analytics'>('events');
+  const [currentTab, setCurrentTab] = useState<'events' | 'registrations' | 'volunteers' | 'myvolunteers' | 'certificates' | 'analytics'>('events');
   const [hasNgoProfile, setHasNgoProfile] = useState(false);
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
   const [removingParticipant, setRemovingParticipant] = useState<string | null>(null);
   const [ngoId, setNgoId] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
+
+  // Tab definitions for dashboard navigation (must be after state)
+  const dashboardTabs = [
+  { key: 'events', icon: Calendar, label: `My Events (${events.length})` },
+  { key: 'myvolunteers', icon: Users, label: `My Volunteers (${requests.confirmedVolunteers.length})` },
+  { key: 'registrations', icon: Check, label: `Pending Registrations (${requests.eventRegistrations.length})` },
+  { key: 'volunteers', icon: Users, label: `Volunteer Applications (${requests.eventRegistrations.length})` },
+  { key: 'certificates', icon: ClipboardIcon, label: 'Certificates' },
+  { key: 'analytics', icon: TrendingUp, label: 'Analytics' }
+  ];
 
   const formatDate = useCallback((dateStr: string | null) => {
     if (!dateStr) return 'Unknown';
@@ -101,35 +130,48 @@ export function NgoDashboard() {
       setHasNgoProfile(true);
       setNgoId(ngoProfile.id);
 
-      const [
-        eventsRes,
-        regRes,
-        enrollRes,
-        confirmedVolRes,
-      ] = await Promise.all([
-        supabase.from('events').select('*').eq('ngo_id', ngoProfile.id).order('date'),
-        supabase.from('event_registrations')
-          .select(`
-            id, user_id, event_id, status, created_at, updated_at,
-            events!inner(id, title, description, date, location, ngo_id),
-            users(id, full_name, email)
-          `)
-          .eq('status', 'pending')
-          .eq('events.ngo_id', ngoProfile.id),
-        supabase.from('ngo_enrollments')
-          .select(`id, user_id, ngo_id, status, created_at, updated_at, users(id, full_name, email)`)
-          .eq('ngo_id', ngoProfile.id)
-          .eq('status', 'pending'),
-        supabase.from('ngo_enrollments')
-          .select(`id, user_id, ngo_id, status, created_at, updated_at, users(id, full_name, email)`)
-          .eq('ngo_id', ngoProfile.id)
-          .eq('status', 'confirmed')
-          .order('created_at', { ascending: false }),
-      ]);
-
-      // Build events with participants
+      // Fetch events for this NGO
+      const eventsRes = await supabase.from('events').select('*').eq('ngo_id', ngoProfile.id).order('date');
       const eventList = eventsRes.data ?? [];
-      const processedEvents = [];
+      const eventIds = eventList.map(e => e.id);
+
+      // Fetch pending registrations for these events
+      const regRes = await supabase.from('event_registrations')
+        .select(`
+          id, user_id, event_id, status, created_at, updated_at,
+          events(id, title, description, date, location, ngo_id),
+          users(id, full_name, email)
+        `)
+        .eq('status', 'pending')
+        .in('event_id', eventIds.length > 0 ? eventIds : ['']);
+
+      // Fetch enrollments
+      const enrollRes = await supabase.from('ngo_enrollments')
+        .select(`id, user_id, ngo_id, status, created_at, updated_at, users(id, full_name, email)`)
+        .eq('ngo_id', ngoProfile.id)
+        .eq('status', 'pending');
+
+      const confirmedVolRes = await supabase.from('ngo_enrollments')
+        .select(`id, user_id, ngo_id, status, created_at, updated_at, users(id, full_name, email)`)
+        .eq('ngo_id', ngoProfile.id)
+        .eq('status', 'confirmed')
+        .order('created_at', { ascending: false });
+      const processedEvents: {
+        id: string;
+        title: string;
+        description: string;
+        date: string;
+        location: string;
+        image_url: string | null;
+        slots_available: number;
+        participants: {
+          id: string;
+          registration_id: string;
+          full_name: string;
+          email: string | null;
+          user_id: string;
+        }[];
+      }[] = [];
       for (const event of eventList) {
         const { data: participants } = await supabase
           .from('event_registrations')
@@ -263,22 +305,49 @@ export function NgoDashboard() {
         </div>
 
         <div className="flex border-b mb-6 space-x-4">
-          {[
-            { key: 'events', icon: Calendar, label: `My Events (${events.length})` },
-            { key: 'myvolunteers', icon: Users, label: `My Volunteers (${requests.confirmedVolunteers.length})` },
-            { key: 'registrations', icon: Check, label: `Pending Registrations (${requests.eventRegistrations.length})` },
-            { key: 'volunteers', icon: Users, label: `Volunteer Applications (${requests.ngoEnrollments.length})` },
-            { key: 'analytics', icon: TrendingUp, label: 'Analytics' },
-          ].map(({ key, icon: Icon, label }) => (
+          {dashboardTabs.map(({ key, icon: Icon, label }) => (
             <button
               key={key}
               className={`px-4 py-2 font-medium ${currentTab === key ? 'border-b-2 border-rose-600 text-rose-600' : 'text-gray-500'}`}
               onClick={() => setCurrentTab(key as any)}
             >
-              <Icon className="inline mr-2" /> {label}
+              {Icon ? <Icon className="inline mr-2" /> : null} {label}
             </button>
           ))}
         </div>
+        {currentTab === 'certificates' && (
+          <div className="space-y-8">
+            <h2 className="text-xl font-semibold">Certificate Generator</h2>
+            {/* Event selection dropdown */}
+            <div className="mb-4">
+              <label className="block font-medium mb-1">Select Event</label>
+              <select
+                className="border rounded px-3 py-2"
+                value={selectedEvent?.id || events[0]?.id || ''}
+                onChange={e => {
+                  const ev = events.find(ev => ev.id === e.target.value);
+                  setSelectedEvent(ev);
+                }}
+              >
+                {events.map(ev => (
+                  <option key={ev.id} value={ev.id}>{ev.title} ({new Date(ev.date).toLocaleDateString()})</option>
+                ))}
+              </select>
+            </div>
+            {/* Certificate Generator UI for Admins */}
+            {events.length > 0 && (
+              <CertificateGeneratorUI
+                event={selectedEvent || events[0]}
+                participants={((selectedEvent || events[0]).participants || []).map((p: any) => ({
+                  id: p.id,
+                  name: p.full_name,
+                  email: p.email || ''
+                }))}
+                ngo={hasNgoProfile ? { name: ngoId || '' } : undefined}
+              />
+            )}
+          </div>
+        )}
 
         {currentTab === 'events' && (
           <div className="space-y-4">
@@ -331,11 +400,25 @@ export function NgoDashboard() {
                           ))}
                         </div>
                       )}
+                      {/* Certificate generation button is now only in the Certificates tab */}
                     </div>
                   )}
                 </div>
               ))
             )}
+          </div>
+        )}
+        {/* Certificate Generator Modal for NGO Admin */}
+        {showBulkGenerator && selectedEvent && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-4xl max-h-[90vh] overflow-auto">
+              <BulkCertificateGenerator
+                event={selectedEvent}
+                ngo={{ name: 'NGO' }}
+                participants={selectedEvent.participants || []}
+                onClose={() => setShowBulkGenerator(false)}
+              />
+            </div>
           </div>
         )}
 
