@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 interface TemplatePreviewProps {
   template: {
@@ -58,7 +58,7 @@ export function TemplatePreview({ template, sampleData }: TemplatePreviewProps) 
           justifyContent:
             style.align === 'left' ? 'flex-start' : style.align === 'right' ? 'flex-end' : 'center',
           color: style.color,
-          fontFamily: style.fontFamily,
+          fontFamily: template.fontFamily,
           fontSize: style.fontSize ? style.fontSize * scale : 32 * scale,
           background: 'rgba(255,255,255,0.01)',
           zIndex: 2,

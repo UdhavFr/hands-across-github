@@ -11,7 +11,7 @@ import { NgoDashboard } from './pages/NgoDashboard';
 import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
 import { RequireAuth } from './components/RequireAuth';
-import { CertificateGeneratorUI } from './components/CertificateGeneratorUI';
+
 
 function App() {
   const [loading, setLoading] = useState(true);

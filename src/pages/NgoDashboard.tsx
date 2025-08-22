@@ -48,7 +48,7 @@ export function NgoDashboard() {
   // Debug authentication status
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       console.log('Current authenticated user:', user);
       console.log('User ID:', user?.id);
       console.log('User type:', user?.user_metadata?.user_type);
