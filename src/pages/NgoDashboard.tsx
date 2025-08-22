@@ -130,32 +130,34 @@ export function NgoDashboard() {
       setHasNgoProfile(true);
       setNgoId(ngoProfile.id);
 
-      // Fetch events for this NGO
-      const eventsRes = await supabase.from('events').select('*').eq('ngo_id', ngoProfile.id).order('date');
+      const [
+        eventsRes,
+        regRes,
+        enrollRes,
+        confirmedVolRes,
+      ] = await Promise.all([
+        supabase.from('events').select('*').eq('ngo_id', ngoProfile.id).order('date'),
+        supabase.from('event_registrations')
+          .select(`
+            id, user_id, event_id, status, created_at, updated_at,
+            events!inner(id, title, description, date, location, ngo_id),
+            users(id, full_name, email)
+          `)
+          .eq('status', 'pending')
+          .eq('events.ngo_id', ngoProfile.id),
+        supabase.from('ngo_enrollments')
+          .select(`id, user_id, ngo_id, status, created_at, updated_at, users(id, full_name, email)`)
+          .eq('ngo_id', ngoProfile.id)
+          .eq('status', 'pending'),
+        supabase.from('ngo_enrollments')
+          .select(`id, user_id, ngo_id, status, created_at, updated_at, users(id, full_name, email)`)
+          .eq('ngo_id', ngoProfile.id)
+          .eq('status', 'confirmed')
+          .order('created_at', { ascending: false }),
+      ]);
+
+      // Build events with participants
       const eventList = eventsRes.data ?? [];
-      const eventIds = eventList.map(e => e.id);
-
-      // Fetch pending registrations for these events
-      const regRes = await supabase.from('event_registrations')
-        .select(`
-          id, user_id, event_id, status, created_at, updated_at,
-          events(id, title, description, date, location, ngo_id),
-          users(id, full_name, email)
-        `)
-        .eq('status', 'pending')
-        .in('event_id', eventIds.length > 0 ? eventIds : ['']);
-
-      // Fetch enrollments
-      const enrollRes = await supabase.from('ngo_enrollments')
-        .select(`id, user_id, ngo_id, status, created_at, updated_at, users(id, full_name, email)`)
-        .eq('ngo_id', ngoProfile.id)
-        .eq('status', 'pending');
-
-      const confirmedVolRes = await supabase.from('ngo_enrollments')
-        .select(`id, user_id, ngo_id, status, created_at, updated_at, users(id, full_name, email)`)
-        .eq('ngo_id', ngoProfile.id)
-        .eq('status', 'confirmed')
-        .order('created_at', { ascending: false });
       const processedEvents: {
         id: string;
         title: string;
