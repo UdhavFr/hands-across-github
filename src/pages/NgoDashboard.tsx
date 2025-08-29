@@ -363,8 +363,6 @@ export function NgoDashboard() {
                   email: p.email ?? ''
                 }))}
                 ngo={hasNgoProfile ? { name: ngoId ?? '' } : undefined}
-                // Pass the pre-made template image directly
-                preMadeTemplateUrl={"https://i.ibb.co/6b7n6kF/cert-template-demo.png"}
               />
             )}
           </div>
