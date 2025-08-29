@@ -1,5 +1,7 @@
 
 // src/App.tsx
+
+import { Helmet } from 'react-helmet';
 import { Toaster } from 'react-hot-toast';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Header } from './components/Header';
@@ -40,40 +42,44 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
-      <div className="min-h-screen bg-gray-50 relative">
-        <Toaster position="top-right" />
-        <Header />
-        
-        <Routes>
-          <Route 
-            path="/" 
-            element={
-              <>
-                <Hero />
-                <EventsPage />
-                <NGOsPage />
-              </>
-            } 
-          />
-          <Route path="/events" element={<EventsPage />} />
-          <Route path="/ngos" element={<NGOsPage />} />
-          <Route 
-            path="/auth/callback" 
-            element={<AuthCallbackPage />} 
-          />
-          <Route 
-            path="/ngo-dashboard" 
-            element={
-              <RequireAuth role="ngo">
-                <NgoDashboard />
-              </RequireAuth>
-            } 
-          />
-          {/* Removed /certificate-generator route: CertificateGeneratorUI is NGO-only and accessible via dashboard */}
-        </Routes>
-      </div>
-    </BrowserRouter>
+    <>
+      <Helmet>
+        <title>❤ JoinHands</title>
+      </Helmet>
+      <BrowserRouter>
+        <div className="min-h-screen bg-gray-50 relative">
+          <Toaster position="top-right" />
+          <Header />
+          <Routes>
+            <Route 
+              path="/" 
+              element={
+                <>
+                  <Hero />
+                  <EventsPage />
+                  <NGOsPage />
+                </>
+              } 
+            />
+            <Route path="/events" element={<EventsPage />} />
+            <Route path="/ngos" element={<NGOsPage />} />
+            <Route 
+              path="/auth/callback" 
+              element={<AuthCallbackPage />} 
+            />
+            <Route 
+              path="/ngo-dashboard" 
+              element={
+                <RequireAuth role="ngo">
+                  <NgoDashboard />
+                </RequireAuth>
+              } 
+            />
+            {/* Removed /certificate-generator route: CertificateGeneratorUI is NGO-only and accessible via dashboard */}
+          </Routes>
+        </div>
+      </BrowserRouter>
+    </>
   );
 }
 

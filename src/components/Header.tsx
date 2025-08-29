@@ -110,9 +110,9 @@ export function Header() {
     <header className="bg-white shadow-sm sticky top-0 z-30">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
-          {/* Logo */}
+          {/* Logo and Title */}
           <div className="flex items-center">
-            <Heart className="h-8 w-8 text-rose-600" />
+            <Heart className="h-8 w-8 text-rose-600" aria-label="JoinHands logo" />
             <Link to="/" className="ml-2 text-2xl font-bold hover:text-rose-600 transition-colors" onClick={() => setShowMobileMenu(false)}>
               JoinHands
             </Link>

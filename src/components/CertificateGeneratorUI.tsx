@@ -221,17 +221,43 @@ export function CertificateGeneratorUI({ onConfirmPlacement, event, participants
       </div>
 
       {currentStep === 'template-selection' && (
-        <TemplateSelector
-          onTemplateSelect={handleTemplateSelect}
-          onUploadClick={() => setIsUploaderOpen(true)}
-          selectedTemplateId={selectedTemplate?.id}
-        />
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <button
+              className={`border rounded-lg overflow-hidden shadow-sm transition-all hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-rose-500 w-full max-w-lg ${selectedTemplate?.id === 'premade' ? 'ring-2 ring-rose-500' : ''}`}
+              onClick={() => handleTemplateSelect({
+                id: 'premade',
+                name: 'Pre-made Template',
+                thumbnail: 'https://i.ibb.co/67JyzFx6/Beige-and-Cream-Geometric-Bordered-Completion-Certificate.png',
+                description: 'A beautiful pre-made certificate template.'
+              })}
+            >
+              <div className="w-full aspect-[297/210] bg-gray-100">
+                <img src="https://i.ibb.co/67JyzFx6/Beige-and-Cream-Geometric-Bordered-Completion-Certificate.png" alt="Pre-made Template" className="w-full h-full object-cover" />
+              </div>
+              <div className="p-4">
+                <h2 className="font-semibold text-lg mb-1">Pre-made Template</h2>
+                <p className="text-gray-600 text-sm">A beautiful pre-made certificate template.</p>
+              </div>
+            </button>
+          </div>
+          <div className="mt-4">
+            <button
+              className="border border-dashed border-rose-400 rounded-lg px-6 py-4 w-full text-rose-600 hover:bg-rose-50 transition-colors"
+              onClick={() => setIsUploaderOpen(true)}
+            >
+              + Add Custom Backdrop
+            </button>
+          </div>
+        </div>
       )}
 
       {currentStep === 'placement' && backdropDataUrl && (
         <div className="space-y-6">
           <NamePlacementCanvas
             backdropDataUrl={backdropDataUrl}
+            canvasSize={canvasSize}
+            initialNameBoxPx={nameBoxPx}
             onCoordinatesChange={handleCoordinatesChange}
             onConfirm={() => setCurrentStep('preview')}
             onReset={handleReset}
@@ -283,7 +309,7 @@ export function CertificateGeneratorUI({ onConfirmPlacement, event, participants
                 <div className="flex items-center gap-2">
                   <label className="font-medium mr-2">Single:</label>
                   <select
-                    className="border rounded px-2 py-1"
+                    className="border rounded px-2 py-1 w-full md:w-64"
                     value={selectedParticipant ? selectedParticipant.id : ''}
                     onChange={e => {
                       const p = (participants as CertificateParticipant[]).find(p => p.id === e.target.value);

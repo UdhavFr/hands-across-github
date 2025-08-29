@@ -1,7 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { BulkCertificateGenerator } from '../components/BulkCertificateGenerator';
 import { CertificateGeneratorUI } from '../components/CertificateGeneratorUI';
-import { Loader2, Users, Calendar, Check, X, ChevronDown, ChevronUp, MapPin, Clock, UserMinus, TrendingUp } from 'lucide-react';
+import {
+  Loader2, Users, Calendar, Check, X, ChevronDown, ChevronUp, MapPin, Clock, UserMinus, TrendingUp
+} from 'lucide-react';
 import { Clipboard as ClipboardIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Tables } from '../types/supabase';
@@ -15,74 +17,46 @@ import { TopVolunteersTable } from '../components/TopVolunteersTable';
 import { EventMetricsTable } from '../components/EventMetricsTable';
 import { RealtimeStatus } from '../components/RealtimeStatus';
 
-// Type definitions for joined data
+// Types for joined results
 type EventRegistrationWithDetails = Tables<'event_registrations'> & {
-  events: {
-    id: string;
-    title: string;
-    description: string;
-    date: string;
-    location: string;
-    ngo_id: string;
+  events?: {
+    id: string; title: string; description: string; date: string; location: string; ngo_id: string;
   };
-  users: {
-    id: string;
-    full_name: string;
-    email: string | null;
-  };
+  users?: { id: string; full_name: string; email: string | null; };
 };
 
 type NgoEnrollmentWithDetails = Tables<'ngo_enrollments'> & {
-  users: {
-    id: string;
-    full_name: string;
-    email: string | null;
-  };
+  users?: { id: string; full_name: string; email: string | null; };
 };
 
-// Type guard helper for safe property access
-
 export function NgoDashboard() {
-  // ...existing code...
-
-  // Debug authentication status
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log('Current authenticated user:', user);
-      console.log('User ID:', user?.id);
-      console.log('User type:', user?.user_metadata?.user_type);
-    };
-    checkAuth();
-  }, []);
-
-  // State for certificate generator modal (must be inside the component)
+  // State
   const [showBulkGenerator, setShowBulkGenerator] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<{
     eventRegistrations: EventRegistrationWithDetails[];
     ngoEnrollments: NgoEnrollmentWithDetails[];
     confirmedVolunteers: NgoEnrollmentWithDetails[];
   }>({ eventRegistrations: [], ngoEnrollments: [], confirmedVolunteers: [] });
-  const [events, setEvents] = useState<
-    {
+
+  const [events, setEvents] = useState<Array<{
+    id: string;
+    title: string;
+    description: string;
+    date: string;
+    location: string;
+    image_url: string | null;
+    slots_available: number;
+    participants: {
       id: string;
-      title: string;
-      description: string;
-      date: string;
-      location: string;
-      image_url: string | null;
-      slots_available: number;
-      participants: {
-        id: string;
-        registration_id: string;
-        full_name: string;
-        email: string | null;
-        user_id: string;
-      }[];
-    }[]
-  >([]);
+      registration_id: string;
+      full_name: string;
+      email: string | null;
+      user_id: string;
+    }[];
+  }>>([]);
+
   const [currentTab, setCurrentTab] = useState<'events' | 'registrations' | 'volunteers' | 'myvolunteers' | 'certificates' | 'analytics'>('events');
   const [hasNgoProfile, setHasNgoProfile] = useState(false);
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
@@ -90,16 +64,7 @@ export function NgoDashboard() {
   const [ngoId, setNgoId] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
 
-  // Tab definitions for dashboard navigation (must be after state)
-  const dashboardTabs = [
-  { key: 'events', icon: Calendar, label: `My Events (${events.length})` },
-  { key: 'myvolunteers', icon: Users, label: `My Volunteers (${requests.confirmedVolunteers.length})` },
-  { key: 'registrations', icon: Check, label: `Event Applications (${requests.eventRegistrations.length})` },
-  { key: 'volunteers', icon: Users, label: `Volunteer Applications (${requests.ngoEnrollments.length})` },
-  { key: 'certificates', icon: ClipboardIcon, label: 'Certificates' },
-  { key: 'analytics', icon: TrendingUp, label: 'Analytics' }
-  ];
-
+  // Format date utility
   const formatDate = useCallback((dateStr: string | null) => {
     if (!dateStr) return 'Unknown';
     const d = new Date(dateStr);
@@ -107,170 +72,204 @@ export function NgoDashboard() {
     return d.toLocaleDateString();
   }, []);
 
+  // Fetch data (clean, sequential, robust)
   const fetchData = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
 
-      const { data: ngoProfile } = await supabase
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      const { data: ngoProfile, error: ngoError } = await supabase
         .from('ngo_profiles')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (!ngoProfile) {
+      if (ngoError || !ngoProfile) {
         setHasNgoProfile(false);
         setRequests({ eventRegistrations: [], ngoEnrollments: [], confirmedVolunteers: [] });
         setEvents([]);
         setNgoId(null);
+        setLoading(false);
         return;
       }
 
       setHasNgoProfile(true);
       setNgoId(ngoProfile.id);
 
-      const [
-        eventsRes,
-        regRes,
-        enrollRes,
-        confirmedVolRes,
-      ] = await Promise.all([
-        supabase.from('events').select('*').eq('ngo_id', ngoProfile.id).order('date'),
-        // First get all events for this NGO, then get pending registrations for those events
-        supabase.from('events').select('id').eq('ngo_id', ngoProfile.id).then(async (eventsResult) => {
-          if (eventsResult.error || !eventsResult.data) return { data: [], error: eventsResult.error };
-          
-          const eventIds = eventsResult.data.map(e => e.id);
-          if (eventIds.length === 0) return { data: [], error: null };
-          
-          return supabase.from('event_registrations')
-            .select(`
-              id, user_id, event_id, status, created_at, updated_at,
-              events!event_registrations_event_id_fkey(id, title, description, date, location, ngo_id),
-              users(id, full_name, email)
-            `)
-            .eq('status', 'pending')
-            .in('event_id', eventIds);
-        }),
-        supabase.from('ngo_enrollments')
-          .select(`id, user_id, ngo_id, status, created_at, updated_at, users(id, full_name, email)`)
-          .eq('ngo_id', ngoProfile.id)
-          .eq('status', 'pending'),
-        // Debug: Let's also check what ngo_enrollments exist
-        supabase.from('ngo_enrollments')
-          .select('*')
-          .eq('ngo_id', ngoProfile.id),
-        supabase.from('ngo_enrollments')
-          .select(`id, user_id, ngo_id, status, created_at, updated_at, users(id, full_name, email)`)
-          .eq('ngo_id', ngoProfile.id)
-          .eq('status', 'confirmed')
-          .order('created_at', { ascending: false }),
-      ]);
+      // 1) fetch events
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('events')
+        .select('*')
+        .eq('ngo_id', ngoProfile.id)
+        .order('date');
 
-      // Debug logging
-      console.log('NGO Profile ID:', ngoProfile.id);
-      console.log('All NGO enrollments for this NGO:', enrollRes.data);
-      console.log('Pending NGO enrollments:', enrollRes.data);
+      if (eventsError) {
+        throw eventsError;
+      }
 
-      // Build events with participants
-      const eventList = eventsRes.data ?? [];
-      const processedEvents: {
-        id: string;
-        title: string;
-        description: string;
-        date: string;
-        location: string;
-        image_url: string | null;
-        slots_available: number;
-        participants: {
-          id: string;
-          registration_id: string;
-          full_name: string;
-          email: string | null;
-          user_id: string;
-        }[];
-      }[] = [];
-      for (const event of eventList) {
-        const { data: participants } = await supabase
+      const eventList = eventsData ?? [];
+
+      // 2) fetch pending registrations only if we have event ids
+      const eventIds = eventList.map((e: any) => e.id);
+      let regResData: EventRegistrationWithDetails[] = [];
+      if (eventIds.length > 0) {
+        const { data: regData, error: regError } = await supabase
+          .from('event_registrations')
+          .select(`
+            id, user_id, event_id, status, created_at, updated_at,
+            events!event_registrations_event_id_fkey(id, title, description, date, location, ngo_id),
+            users(id, full_name, email)
+          `)
+          .eq('status', 'pending')
+          .in('event_id', eventIds);
+
+        if (regError) throw regError;
+        regResData = regData ?? [];
+      }
+
+      // 3) pending enrollments
+      const { data: enrollData, error: enrollError } = await supabase
+        .from('ngo_enrollments')
+        .select(`id, user_id, ngo_id, status, created_at, updated_at, users(id, full_name, email)`)
+        .eq('ngo_id', ngoProfile.id)
+        .eq('status', 'pending');
+
+      if (enrollError) throw enrollError;
+
+      // 4) confirmed volunteers
+      const { data: confirmedData, error: confirmedError } = await supabase
+        .from('ngo_enrollments')
+        .select(`id, user_id, ngo_id, status, created_at, updated_at, users(id, full_name, email)`)
+        .eq('ngo_id', ngoProfile.id)
+        .eq('status', 'confirmed')
+        .order('created_at', { ascending: false });
+
+      if (confirmedError) throw confirmedError;
+
+      // 5) build processed events with confirmed participants for each event
+      const processedEvents: typeof events = [];
+      for (const ev of eventList) {
+        const { data: participantsData } = await supabase
           .from('event_registrations')
           .select(`id, user_id, users!inner(id, full_name, email)`)
-          .eq('event_id', event.id)
+          .eq('event_id', ev.id)
           .eq('status', 'confirmed');
 
+        const participants = (participantsData ?? []).map((p: any) => ({
+          id: p?.users?.id ?? p.user_id ?? '',
+          registration_id: p?.id ?? '',
+          full_name: p?.users?.full_name ?? 'Unknown',
+          email: p?.users?.email ?? null,
+          user_id: p?.user_id ?? '',
+        }));
+
         processedEvents.push({
-          id: event.id,
-          title: event.title,
-          description: event.description,
-          date: event.date,
-          location: event.location,
-          image_url: event.image_url,
-          slots_available: event.slots_available,
-          participants: participants?.map(p => ({
-            id: p.users.id,
-            registration_id: p.id,
-            full_name: p.users.full_name,
-            email: p.users.email,
-            user_id: p.user_id,
-          })) ?? [],
+          id: ev.id,
+          title: ev.title,
+          description: ev.description,
+          date: ev.date,
+          location: ev.location,
+          image_url: ev.image_url ?? null,
+          slots_available: ev.slots_available ?? 0,
+          participants,
         });
       }
 
       setEvents(processedEvents);
       setRequests({
-        eventRegistrations: (regRes.data as EventRegistrationWithDetails[]) ?? [],
-        ngoEnrollments: (enrollRes.data as NgoEnrollmentWithDetails[]) ?? [],
-        confirmedVolunteers: (confirmedVolRes.data as NgoEnrollmentWithDetails[]) ?? [],
+        eventRegistrations: regResData ?? [],
+        ngoEnrollments: enrollData ?? [],
+        confirmedVolunteers: confirmedData ?? [],
       });
+
       setLastUpdate(Date.now());
-    } catch (error) {
+    } catch (err) {
+      console.error('fetchData error', err);
       toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const toggleEventExpansion = (eventId: string) => {
+  // Initialize selectedEvent when events load or when selectedEvent is missing from events
+  useEffect(() => {
+    if (events.length === 0) {
+      setSelectedEvent(null);
+      return;
+    }
+    if (!selectedEvent || !events.some(e => e.id === selectedEvent?.id)) {
+      setSelectedEvent(events[0]);
+    }
+  }, [events, selectedEvent]);
+
+  // Memoize dashboard tabs (avoid recreating functions/arrays every render)
+  const dashboardTabs = useMemo(() => ([
+    { key: 'events', icon: Calendar, label: `My Events (${events.length})` },
+    { key: 'myvolunteers', icon: Users, label: `My Volunteers (${requests.confirmedVolunteers.length})` },
+    { key: 'registrations', icon: Check, label: `Event Applications (${requests.eventRegistrations.length})` },
+    { key: 'volunteers', icon: Users, label: `Volunteer Applications (${requests.ngoEnrollments.length})` },
+    { key: 'certificates', icon: ClipboardIcon, label: 'Certificates' },
+    { key: 'analytics', icon: TrendingUp, label: 'Analytics' },
+  ]), [events.length, requests.confirmedVolunteers.length, requests.eventRegistrations.length, requests.ngoEnrollments.length]);
+
+  // Event expansion toggle
+  const toggleEventExpansion = useCallback((eventId: string) => {
     setExpandedEvents(es => {
       const newSet = new Set(es);
       if (newSet.has(eventId)) newSet.delete(eventId);
       else newSet.add(eventId);
       return newSet;
     });
-  };
+  }, []);
 
-  const removeParticipant = async (registrationId: string, participantName: string) => {
+  // Participant removal
+  const removeParticipant = useCallback(async (registrationId: string, participantName: string) => {
     setRemovingParticipant(registrationId);
-    const { error } = await supabase.from('event_registrations').update({ status: 'rejected' }).eq('id', registrationId);
-    if (error) toast.error('Failed to remove participant');
-    else {
-      toast.success(`${participantName} removed`);
-      fetchData();
-    }
-    setRemovingParticipant(null);
-  };
-
-  const handleAction = async (table: 'event_registrations' | 'ngo_enrollments', id: string, action: 'approve' | 'reject') => {
-    const { error } = await supabase.from(table).update({ status: action === 'approve' ? 'confirmed' : 'rejected' }).eq('id', id);
-    if (error) toast.error(`Failed to ${action} request`);
-    else {
-      toast.success(`Request ${action}d successfully`);
-      fetchData();
-    }
-  };
-
-  const handleRemoveVolunteer = async (id: string, name: string) => {
     try {
-      await supabase.from('ngo_enrollments').update({ status: 'rejected' }).eq('id', id);
+      const { error } = await supabase.from('event_registrations').update({ status: 'rejected' }).eq('id', registrationId);
+      if (error) throw error;
+      toast.success(`${participantName} removed`);
+      await fetchData();
+    } catch {
+      toast.error('Failed to remove participant');
+    } finally {
+      setRemovingParticipant(null);
+    }
+  }, [fetchData]);
+
+  const handleAction = useCallback(async (table: 'event_registrations' | 'ngo_enrollments', id: string, action: 'approve' | 'reject') => {
+    try {
+      const { error } = await supabase.from(table).update({ status: action === 'approve' ? 'confirmed' : 'rejected' }).eq('id', id);
+      if (error) throw error;
+      toast.success(`Request ${action}d successfully`);
+      await fetchData();
+    } catch {
+      toast.error(`Failed to ${action} request`);
+    }
+  }, [fetchData]);
+
+  const handleRemoveVolunteer = useCallback(async (id: string, name: string) => {
+    try {
+      const { error } = await supabase.from('ngo_enrollments').update({ status: 'rejected' }).eq('id', id);
+      if (error) throw error;
       toast.success(`${name} has been removed`);
-      fetchData();
+      await fetchData();
     } catch {
       toast.error('Failed to remove volunteer');
     }
-  };
+  }, [fetchData]);
 
-  // Render action buttons for approve/reject
-  const renderActionButtons = (type: 'event' | 'ngo', id: string) => {
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Render action buttons
+  const renderActionButtons = useCallback((type: 'event' | 'ngo', id: string) => {
     const table = type === 'event' ? 'event_registrations' : 'ngo_enrollments';
     return (
       <div className="flex space-x-2">
@@ -290,20 +289,19 @@ export function NgoDashboard() {
         </button>
       </div>
     );
-  };
+  }, [handleAction]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  if (loading)
+  // Loading state
+  if (loading) {
     return (
       <div className="flex justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-rose-600" />
       </div>
     );
+  }
 
-  if (!hasNgoProfile)
+  // No NGO profile
+  if (!hasNgoProfile) {
     return (
       <RequireAuth role="ngo">
         <div className="max-w-7xl mx-auto px-4 py-8 text-center">
@@ -314,6 +312,7 @@ export function NgoDashboard() {
         </div>
       </RequireAuth>
     );
+  }
 
   return (
     <RequireAuth role="ngo">
@@ -334,35 +333,38 @@ export function NgoDashboard() {
             </button>
           ))}
         </div>
+
         {currentTab === 'certificates' && (
           <div className="space-y-8">
             <h2 className="text-xl font-semibold">Certificate Generator</h2>
-            {/* Event selection dropdown */}
             <div className="mb-4">
               <label className="block font-medium mb-1">Select Event</label>
               <select
-                className="border rounded px-3 py-2"
-                value={selectedEvent?.id || events[0]?.id || ''}
+                className="border rounded px-3 py-2 w-full md:w-96"
+                value={selectedEvent?.id ?? (events[0]?.id ?? '')}
                 onChange={e => {
-                  const ev = events.find(ev => ev.id === e.target.value);
+                  const ev = events.find(ev => ev.id === e.target.value) ?? null;
                   setSelectedEvent(ev);
                 }}
               >
                 {events.map(ev => (
-                  <option key={ev.id} value={ev.id}>{ev.title} ({new Date(ev.date).toLocaleDateString()})</option>
+                  <option key={ev.id} value={ev.id}>
+                    {ev.title} ({new Date(ev.date).toLocaleDateString()})
+                  </option>
                 ))}
               </select>
             </div>
-            {/* Certificate Generator UI for Admins */}
-            {events.length > 0 && (
+            {selectedEvent && (
               <CertificateGeneratorUI
-                event={selectedEvent || events[0]}
-                participants={((selectedEvent || events[0]).participants || []).map((p: any) => ({
+                event={selectedEvent}
+                participants={(selectedEvent.participants || []).map((p: any) => ({
                   id: p.id,
                   name: p.full_name,
-                  email: p.email || ''
+                  email: p.email ?? ''
                 }))}
-                ngo={hasNgoProfile ? { name: ngoId || '' } : undefined}
+                ngo={hasNgoProfile ? { name: ngoId ?? '' } : undefined}
+                // Pass the pre-made template image directly
+                preMadeTemplateUrl={"https://i.ibb.co/6b7n6kF/cert-template-demo.png"}
               />
             )}
           </div>
@@ -394,10 +396,12 @@ export function NgoDashboard() {
                       {expandedEvents.has(event.id) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </div>
                   </div>
+
                   {expandedEvents.has(event.id) && (
                     <div className="bg-gray-50 p-4 border-t">
                       <p className="text-sm text-gray-700 mb-3">{event.description}</p>
                       <h4 className="text-sm font-medium mb-2">Confirmed Participants ({event.participants.length})</h4>
+
                       {event.participants.length === 0 ? (
                         <p className="text-gray-500 text-sm">No confirmed participants</p>
                       ) : (
@@ -419,7 +423,6 @@ export function NgoDashboard() {
                           ))}
                         </div>
                       )}
-                      {/* Certificate generation button is now only in the Certificates tab */}
                     </div>
                   )}
                 </div>
@@ -427,7 +430,7 @@ export function NgoDashboard() {
             )}
           </div>
         )}
-        {/* Certificate Generator Modal for NGO Admin */}
+
         {showBulkGenerator && selectedEvent && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 max-w-4xl max-h-[90vh] overflow-auto">
@@ -496,6 +499,7 @@ export function NgoDashboard() {
               <h2 className="text-xl font-semibold">My Volunteers</h2>
               <div className="text-sm text-gray-500">{requests.confirmedVolunteers.length} active volunteer{requests.confirmedVolunteers.length !== 1 ? 's' : ''}</div>
             </div>
+
             {requests.confirmedVolunteers.length === 0 ? (
               <div className="text-center py-8 bg-gray-50 rounded-lg">
                 <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -532,7 +536,7 @@ export function NgoDashboard() {
         {currentTab === 'analytics' && ngoId && (
           <div className="space-y-6">
             <NgoAnalytics ngoId={ngoId} key={`analytics-${lastUpdate}`} />
-            
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-6">
                 <EventMetricsTable ngoId={ngoId} key={`events-table-${lastUpdate}`} />
