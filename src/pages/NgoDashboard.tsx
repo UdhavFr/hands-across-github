@@ -34,6 +34,12 @@ export function NgoDashboard() {
   const [showBulkGenerator, setShowBulkGenerator] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [templateConfig, setTemplateConfig] = useState<{
+    backdropDataUrl: string;
+    nameBoxPx: { x: number; y: number; width: number; height: number };
+    nameBoxMm?: { xMm: number; yMm: number; widthMm: number; heightMm: number };
+    canvasPxSize: { widthPx: number; heightPx: number };
+  } | null>(null);
   const [requests, setRequests] = useState<{
     eventRegistrations: EventRegistrationWithDetails[];
     ngoEnrollments: NgoEnrollmentWithDetails[];
@@ -213,8 +219,8 @@ export function NgoDashboard() {
     { key: 'myvolunteers', icon: Users, label: `My Volunteers (${requests.confirmedVolunteers.length})` },
     { key: 'registrations', icon: Check, label: `Event Applications (${requests.eventRegistrations.length})` },
     { key: 'volunteers', icon: Users, label: `Volunteer Applications (${requests.ngoEnrollments.length})` },
-    { key: 'certificates', icon: ClipboardIcon, label: 'Certificates' },
     { key: 'analytics', icon: TrendingUp, label: 'Analytics' },
+    { key: 'certificates', icon: ClipboardIcon, label: 'Certificates' },
   ]), [events.length, requests.confirmedVolunteers.length, requests.eventRegistrations.length, requests.ngoEnrollments.length]);
 
   // Event expansion toggle
@@ -337,6 +343,7 @@ export function NgoDashboard() {
         {currentTab === 'certificates' && (
           <div className="space-y-8">
             <h2 className="text-xl font-semibold">Certificate Generator</h2>
+
             <div className="mb-4">
               <label className="block font-medium mb-1">Select Event</label>
               <select
@@ -354,6 +361,7 @@ export function NgoDashboard() {
                 ))}
               </select>
             </div>
+
             {selectedEvent && (
               <CertificateGeneratorUI
                 event={selectedEvent}
@@ -363,6 +371,15 @@ export function NgoDashboard() {
                   email: p.email ?? ''
                 }))}
                 ngo={hasNgoProfile ? { name: ngoId ?? '' } : undefined}
+                onConfirmPlacement={(config) => {
+                  setTemplateConfig({
+                    backdropDataUrl: config.backdropDataUrl,
+                    nameBoxPx: config.nameBoxPx,
+                    nameBoxMm: config.nameBoxMm,
+                    canvasPxSize: config.canvasPxSize
+                  });
+                  setShowBulkGenerator(true);
+                }}
               />
             )}
           </div>
@@ -429,24 +446,14 @@ export function NgoDashboard() {
           </div>
         )}
 
-        {showBulkGenerator && selectedEvent && (
+        {showBulkGenerator && selectedEvent && templateConfig && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 max-w-4xl max-h-[90vh] overflow-auto">
               <BulkCertificateGenerator
                 event={selectedEvent}
                 ngo={{ name: 'NGO' }}
                 participants={selectedEvent.participants || []}
-                template={{
-                  backdropDataUrl: '', // Default empty - admin should select template first
-                  nameBoxPx: { x: 200, y: 150, width: 400, height: 80 },
-                  nameBoxMm: { xMm: 50, yMm: 70, widthMm: 150, heightMm: 30 },
-                  canvasPxSize: { widthPx: 800, heightPx: 600 },
-                  fontFamily: 'helvetica',
-                  fontSize: 32,
-                  textColor: '#000000',
-                  textAlign: 'center',
-                  fontWeight: 'normal',
-                }}
+                template={templateConfig}
                 onClose={() => setShowBulkGenerator(false)}
               />
             </div>

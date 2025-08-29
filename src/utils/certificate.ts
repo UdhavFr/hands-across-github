@@ -59,77 +59,76 @@ export function fitTextToBox(
   textAlign: 'left' | 'center' | 'right' = 'center',
   maxFontSize: number = 32
 ): number {
-  const actualMaxFontSize = Math.min(maxFontSize, 72);
-  const minFontSize = 8;
-  const padding = 2; // mm padding inside the box
+  const actualMaxFontSizePt = Math.min(maxFontSize, 72); // max font size in points
+  const minFontSizePt = 6; // points
+  const paddingMm = 2; // mm padding inside the box
   const lineHeight = 1.2;
-  
-  // Available space inside the box
-  const availableWidth = box.widthMm - (padding * 2);
-  const availableHeight = box.heightMm - (padding * 2);
-  
-  let fontSize = maxFontSize;
+
+  // helper: convert points -> mm (1pt = 25.4/72 mm)
+  const ptToMm = (pt: number) => (pt * 25.4) / 72;
+
+  // Available space inside the box (mm)
+  const availableWidth = box.widthMm - (paddingMm * 2);
+  const availableHeight = box.heightMm - (paddingMm * 2);
+
+  let chosenFontPt = actualMaxFontSizePt;
   let lines: string[] = [];
-  
-  // Binary search for optimal font size
-  let maxSize = actualMaxFontSize;
-  let minSize = minFontSize;
-  
-  while (minSize <= maxSize) {
-    fontSize = Math.floor((minSize + maxSize) / 2);
+
+  // Binary search for optimal font size in points
+  let maxPt = actualMaxFontSizePt;
+  let minPt = minFontSizePt;
+
+  while (minPt <= maxPt) {
+    const testPt = Math.floor((minPt + maxPt) / 2);
     doc.setFont(fontName, style);
-    doc.setFontSize(fontSize);
-    
+    doc.setFontSize(testPt); // points
+
     // Split text into words and wrap
     const words = text.split(' ');
     lines = [];
     let currentLine = '';
-    
+
     for (const word of words) {
       const testLine = currentLine ? `${currentLine} ${word}` : word;
-      const textWidth = doc.getTextWidth(testLine);
-      
-      if (textWidth <= availableWidth) {
+      const textWidthMm = doc.getTextWidth(testLine); // mm (jsPDF uses doc unit)
+
+      if (textWidthMm <= availableWidth) {
         currentLine = testLine;
       } else {
         if (currentLine) {
           lines.push(currentLine);
           currentLine = word;
         } else {
-          // Single word is too long, break it
           lines.push(word);
         }
       }
     }
-    
-    if (currentLine) {
-      lines.push(currentLine);
-    }
-    
-    // Check if all lines fit in available height
-    const totalHeight = lines.length * fontSize * lineHeight;
-    
-    if (totalHeight <= availableHeight && lines.every(line => doc.getTextWidth(line) <= availableWidth)) {
-      minSize = fontSize + 1; // Try larger font
+
+    if (currentLine) lines.push(currentLine);
+
+    // Calculate total height in mm using pt->mm conversion
+    const singleLineHeightMm = ptToMm(testPt) * lineHeight;
+    const totalHeightMm = lines.length * singleLineHeightMm;
+
+    if (totalHeightMm <= availableHeight && lines.every(line => doc.getTextWidth(line) <= availableWidth)) {
+      minPt = testPt + 1; // try larger
     } else {
-      maxSize = fontSize - 1; // Try smaller font
+      maxPt = testPt - 1; // try smaller
     }
   }
-  
-  // Use the largest font size that fits
-  fontSize = maxSize;
-  doc.setFontSize(fontSize);
-  
-  // Recalculate lines with final font size
+
+  // Use the largest font size (in points) that fits
+  chosenFontPt = maxPt;
+  doc.setFontSize(chosenFontPt);
+
+  // Recalculate wrapped lines with final font size
   const words = text.split(' ');
   lines = [];
   let currentLine = '';
-  
   for (const word of words) {
     const testLine = currentLine ? `${currentLine} ${word}` : word;
-    const textWidth = doc.getTextWidth(testLine);
-    
-    if (textWidth <= availableWidth) {
+    const textWidthMm = doc.getTextWidth(testLine);
+    if (textWidthMm <= availableWidth) {
       currentLine = testLine;
     } else {
       if (currentLine) {
@@ -140,25 +139,22 @@ export function fitTextToBox(
       }
     }
   }
-  
-  if (currentLine) {
-    lines.push(currentLine);
-  }
-  
+  if (currentLine) lines.push(currentLine);
+
   // Draw the text lines
-  const startY = box.yMm + padding + (fontSize * 0.8); // Adjust for font baseline
-  const totalTextHeight = lines.length * fontSize * lineHeight;
-  const verticalOffset = Math.max(0, (availableHeight - totalTextHeight) / 2);
-  
+  const baselineOffsetMm = ptToMm(chosenFontPt) * 0.8; // approximate baseline offset
+  const startY = box.yMm + paddingMm + baselineOffsetMm;
+  const totalTextHeightMm = lines.length * ptToMm(chosenFontPt) * lineHeight;
+  const verticalOffset = Math.max(0, (availableHeight - totalTextHeightMm) / 2);
+
   lines.forEach((line, index) => {
-    const yPosition = startY + verticalOffset + (index * fontSize * lineHeight);
-    
+    const yPosition = startY + verticalOffset + (index * ptToMm(chosenFontPt) * lineHeight);
+
     // Determine x position based on alignment
-    let xPosition = box.xMm + padding;
+    let xPosition = box.xMm + paddingMm;
     const lineWidth = doc.getTextWidth(line);
-    
-    if (doc.getTextWidth === undefined) {
-      // Fallback if getTextWidth is not available
+
+    if (typeof doc.getTextWidth !== 'function') {
       xPosition = box.xMm + availableWidth / 2;
     } else {
       switch (textAlign) {
@@ -166,17 +162,18 @@ export function fitTextToBox(
           xPosition = box.xMm + (box.widthMm - lineWidth) / 2;
           break;
         case 'right':
-          xPosition = box.xMm + box.widthMm - padding - lineWidth;
+          xPosition = box.xMm + box.widthMm - paddingMm - lineWidth;
           break;
-        default: // left
-          xPosition = box.xMm + padding;
+        default:
+          xPosition = box.xMm + paddingMm;
       }
     }
-    
+
     doc.text(line, xPosition, yPosition);
   });
-  
-  return fontSize;
+
+  // Return chosen font size in points to the caller
+  return chosenFontPt;
 }
 
 /**
@@ -216,146 +213,72 @@ export function generateCertificate(
     unit: 'mm',
     format: 'a4'
   });
-  
+
   // Convert pixel coordinates to millimeters
   const nameBoxMm = options.nameBoxMm || pxToMm(
     options.nameBoxPx,
     options.canvasPxSize,
     PDF_SIZE
   );
-  
+
+  // Add backdrop image if available
   try {
-    // Add backdrop image
-    // Extract image format from data URL
     const imageMatch = options.backdropDataUrl.match(/^data:image\/([a-zA-Z0-9+/]+);base64,/);
     const imageFormat = imageMatch ? imageMatch[1].toLowerCase() : 'jpeg';
-    
-    // Add image to fill entire PDF page (A4 landscape)
     doc.addImage(
       options.backdropDataUrl,
       imageFormat.toUpperCase(),
-      0, // x position (mm)
-      0, // y position (mm) 
-      PDF_SIZE.widthMm, // width (mm)
-      PDF_SIZE.heightMm, // height (mm)
-      undefined, // alias
-      'FAST' // compression
+      0, 0,
+      PDF_SIZE.widthMm,
+      PDF_SIZE.heightMm,
+      undefined,
+      'FAST'
     );
-    
   } catch (error) {
     console.warn('Failed to add backdrop image:', error);
-    // Continue without backdrop if image loading fails
   }
-  
+
   // Handle custom font embedding if provided
   let actualFontName = 'helvetica';
   const fontWeight = mapFontWeight(options.fontWeight);
-  
+
   if (options.fontFamily && options.fontFamily.startsWith('data:font/ttf;base64,')) {
     try {
-      // Extract base64 font data
       const fontData = options.fontFamily.split(',')[1];
       const customFontName = 'CustomFont';
-      
-      // Add the font to jsPDF
       doc.addFileToVFS(`${customFontName}.ttf`, fontData);
       doc.addFont(`${customFontName}.ttf`, customFontName, 'normal');
       doc.setFont(customFontName);
       actualFontName = customFontName;
     } catch (error) {
       console.warn('Failed to embed custom font, falling back to default:', error);
-      doc.setFont('helvetica', fontWeight);
+      doc.setFont('helvetica', 'bold');
     }
   } else {
-    // Map CSS font to jsPDF font
     actualFontName = mapCssFontToJsPDF(options.fontFamily || 'helvetica');
-    doc.setFont(actualFontName, fontWeight);
+    doc.setFont(actualFontName, 'bold');
   }
-  
+
   // Set text color
   const textColor = options.textColor || '#000000';
   const rgb = hexToRgb(textColor);
   doc.setTextColor(rgb.r, rgb.g, rgb.b);
-  
-  // Draw participant name in the name box using fitTextToBox
+
+  // Draw only the participant name
+  // Make PDF name font a bit smaller than the preview by reducing the max font size by 4 points
+  const requestedFontSize = options.fontSize ?? 32;
+  const adjustedMaxFontSize = Math.max(8, requestedFontSize - 4);
   fitTextToBox(
     doc,
     participant.name,
     nameBoxMm,
     actualFontName,
-    fontWeight,
+    'bold',
     options.textAlign || 'center',
-    options.fontSize || 32
+    adjustedMaxFontSize
   );
-  
-  // Add certificate elements in strategic positions
-  const currentDate = new Date().toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long', 
-    day: 'numeric'
-  });
-  
-  const certificateId = `CERT-${uuidv4().substring(0, 8).toUpperCase()}`;
-  
-  // Certificate title (top center)
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(18);
-  doc.setTextColor(50, 50, 50); // Dark gray
-  const titleText = 'CERTIFICATE OF APPRECIATION';
-  const titleWidth = doc.getTextWidth(titleText);
-  doc.text(titleText, (PDF_SIZE.widthMm - titleWidth) / 2, 30);
-  
-  // Event details (below name box)
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(12);
-  doc.setTextColor(80, 80, 80);
-  
-  const eventY = nameBoxMm.yMm + nameBoxMm.heightMm + 20;
-  
-  // Event title
-  const eventTitleText = `for participating in "${event.title}"`;
-  const eventTitleWidth = doc.getTextWidth(eventTitleText);
-  doc.text(eventTitleText, (PDF_SIZE.widthMm - eventTitleWidth) / 2, eventY);
-  
-  // Event date and location
-  const eventDetailsText = `${new Date(event.date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })} • ${event.location}`;
-  const eventDetailsWidth = doc.getTextWidth(eventDetailsText);
-  doc.text(eventDetailsText, (PDF_SIZE.widthMm - eventDetailsWidth) / 2, eventY + 10);
-  
-  // Bottom section with NGO info and certificate details
-  const bottomY = PDF_SIZE.heightMm - 30;
-  
-  // NGO name (bottom left)
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.text(ngo.name, 20, bottomY);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.text('Organization', 20, bottomY + 5);
-  
-  // Issue date (bottom center)
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  const dateText = `Issued: ${currentDate}`;
-  const dateWidth = doc.getTextWidth(dateText);
-  doc.text(dateText, (PDF_SIZE.widthMm - dateWidth) / 2, bottomY);
-  
-  // Certificate ID (bottom right)
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  const idText = `ID: ${certificateId}`;
-  const idWidth = doc.getTextWidth(idText);
-  doc.text(idText, PDF_SIZE.widthMm - 20 - idWidth, bottomY);
-  
-  // Add decorative border (optional)
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.5);
-  doc.rect(10, 10, PDF_SIZE.widthMm - 20, PDF_SIZE.heightMm - 20);
-  
+
+  // No other certificate elements are rendered
   return doc;
 }
 

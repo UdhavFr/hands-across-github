@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { generateBulkCertificates, downloadSingleCertificate, BulkGenerationProgress, getRecommendedBatchSize } from '../utils/files';
+import { TemplateSelector } from './TemplateSelector';
 import { BackdropUploader } from './BackdropUploader';
 import { NamePlacementCanvas } from './NamePlacementCanvas';
 import { CertificatePreview } from './CertificatePreview';
@@ -13,18 +14,13 @@ interface Template {
   description: string;
 }
 
-
 interface CertificatePayload {
   backdropDataUrl: string;
   canvasPxSize: CanvasSize;
   nameBoxPx: PxBox;
   nameBoxMm: MmBox;
-  fontFamily?: string;
-  fontSize?: number;
-  textColor?: string;
-  textAlign?: 'left' | 'center' | 'right';
-  fontWeight?: 'normal' | 'bold';
 }
+
 // Types for props
 export type CertificateEvent = {
   title: string;
@@ -32,6 +28,7 @@ export type CertificateEvent = {
   location: string;
   id: string;
 };
+
 export type CertificateParticipant = { id: string; name: string; email?: string };
 export type CertificateNGO = { name: string; logo_url?: string };
 
@@ -46,24 +43,31 @@ type Step = 'template-selection' | 'placement' | 'preview';
 
 export function CertificateGeneratorUI({ onConfirmPlacement, event, participants, ngo }: CertificateGeneratorUIProps) {
   // Bulk generation state
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState<BulkGenerationProgress | null>(null);
   const abortController = useRef<AbortController | null>(null);
-  const [isBulk, setIsBulk] = useState<boolean>(false);
+  const [isBulk, setIsBulk] = useState(false);
   const [selectedParticipant, setSelectedParticipant] = useState<CertificateParticipant | null>(null);
+
   const [currentStep, setCurrentStep] = useState<Step>('template-selection');
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
-  const [backdropDataUrl, setBackdropDataUrl] = useState<string>('');
-  const [isUploaderOpen, setIsUploaderOpen] = useState<boolean>(false);
-  const [canvasSize] = useState<CanvasSize>({ widthPx: 800, heightPx: 600 });
+  const [backdropDataUrl, setBackdropDataUrl] = useState('');
+  const [isUploaderOpen, setIsUploaderOpen] = useState(false);
+  const [canvasSize] = useState({ widthPx: 800, heightPx: 600 });
   const [nameBoxPx, setNameBoxPx] = useState<PxBox>({ x: 200, y: 150, width: 400, height: 80 });
   const [nameBoxMm, setNameBoxMm] = useState<MmBox>({ xMm: 0, yMm: 0, widthMm: 0, heightMm: 0 });
-  // Add text styling state
-  const [fontFamily, setFontFamily] = useState<string>('helvetica');
-  const [fontSize, setFontSize] = useState<number>(32);
-  const [textColor, setTextColor] = useState<string>('#000000');
-  const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>('center');
-  const [fontWeight, setFontWeight] = useState<'normal' | 'bold'>('normal');
+
+  const [previewStyle, setPreviewStyle] = useState<{
+    fontSize: number;
+    fontFamily: string;
+    textColor: string;
+    textAlign: 'left' | 'center' | 'right';
+  }>({
+    fontSize: 24,
+    fontFamily: 'helvetica',
+    textColor: '#000000',
+    textAlign: 'center'
+  });
 
   const handleTemplateSelect = useCallback((template: Template) => {
     setSelectedTemplate(template);
@@ -88,11 +92,6 @@ export function CertificateGeneratorUI({ onConfirmPlacement, event, participants
       canvasPxSize: canvasSize,
       nameBoxPx,
       nameBoxMm,
-      fontFamily,
-      fontSize,
-      textColor,
-      textAlign,
-      fontWeight,
     };
 
     // If no event/participants/ngo, fallback to default
@@ -117,8 +116,10 @@ export function CertificateGeneratorUI({ onConfirmPlacement, event, participants
       setIsGenerating(true);
       setProgress({ completed: 0, total: participants.length, percentage: 0 });
       abortController.current = new AbortController();
+
       // Patch: ensure all participants have email as string
       const safeParticipants = participants.map(p => ({ ...p, email: p.email ?? '' }));
+
       try {
         await generateBulkCertificates(
           safeParticipants,
@@ -129,11 +130,10 @@ export function CertificateGeneratorUI({ onConfirmPlacement, event, participants
             canvasPxSize: canvasSize,
             nameBoxPx,
             nameBoxMm,
-            fontFamily,
-            fontSize,
-            textColor,
-            textAlign,
-            fontWeight,
+            fontSize: previewStyle.fontSize,
+            fontFamily: previewStyle.fontFamily,
+            textColor: previewStyle.textColor,
+            textAlign: previewStyle.textAlign,
           },
           {
             onProgress: setProgress,
@@ -161,6 +161,7 @@ export function CertificateGeneratorUI({ onConfirmPlacement, event, participants
     let participant = selectedParticipant || participants[0];
     // Patch: ensure email is string
     const safeParticipant = { ...participant, email: participant.email ?? '' };
+
     try {
       await downloadSingleCertificate(
         safeParticipant,
@@ -171,18 +172,14 @@ export function CertificateGeneratorUI({ onConfirmPlacement, event, participants
           canvasPxSize: canvasSize,
           nameBoxPx,
           nameBoxMm,
-          fontFamily,
-          fontSize,
-          textColor,
-          textAlign,
-          fontWeight,
         }
       );
       alert('Certificate downloaded!');
     } catch (err) {
       alert('Error generating certificate: ' + err);
     }
-  }, [backdropDataUrl, canvasSize, nameBoxPx, nameBoxMm, onConfirmPlacement, event, participants, ngo, isBulk, selectedParticipant]);
+  }, [backdropDataUrl, canvasSize, nameBoxPx, nameBoxMm, onConfirmPlacement, event, participants, ngo, isBulk, selectedParticipant, previewStyle]);
+
   // Cancel bulk generation
   const handleCancel = useCallback(() => {
     if (abortController.current) {
@@ -196,11 +193,6 @@ export function CertificateGeneratorUI({ onConfirmPlacement, event, participants
     setBackdropDataUrl('');
     setNameBoxPx({ x: 200, y: 150, width: 400, height: 80 });
     setNameBoxMm({ xMm: 0, yMm: 0, widthMm: 0, heightMm: 0 });
-    setFontFamily('helvetica');
-    setFontSize(32);
-    setTextColor('#000000');
-    setTextAlign('center');
-    setFontWeight('normal');
   }, []);
 
   const handleBack = useCallback(() => {
@@ -213,204 +205,272 @@ export function CertificateGeneratorUI({ onConfirmPlacement, event, participants
 
   // Guard: disable confirm unless all required fields are present
   const canGenerate = !!(event && ngo && backdropDataUrl && nameBoxMm && nameBoxMm.widthMm > 0 && nameBoxMm.heightMm > 0);
+
   const recommendedBatchSize = participants && participants.length > 1 ? getRecommendedBatchSize(participants.length) : 5;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="mb-8">
-        <div className="flex items-center gap-4 mb-4">
-          {currentStep !== 'template-selection' && (
-            <button
-              onClick={handleBack}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors"
-              aria-label="Go back"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              Back
-            </button>
-          )}
-          <h1 className="text-3xl font-bold text-gray-900">
-            Certificate Generator
-          </h1>
-        </div>
+    <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-lg">
+      {/* Header with Back Button and Title */}
+  <div className="flex items-center justify-between p-6 border-b border-rose-200">
+        {currentStep !== 'template-selection' && (
+          <button
+            onClick={handleBack}
+            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </button>
+        )}
+        
+        <h1 className="text-2xl font-bold text-gray-900 flex-1 text-center">
+          Certificate Generator
+        </h1>
+        
+        {/* Placeholder for symmetry */}
+        {currentStep !== 'template-selection' && <div className="w-20"></div>}
+      </div>
 
-        {/* Progress indicator */}
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <span className={currentStep === 'template-selection' ? 'text-rose-600 font-medium' : ''}>
-            1. Choose Template
-          </span>
-          <span className="text-gray-300">→</span>
-          <span className={currentStep === 'placement' ? 'text-rose-600 font-medium' : ''}>
-            2. Position Name
-          </span>
-          <span className="text-gray-300">→</span>
-          <span className={currentStep === 'preview' ? 'text-rose-600 font-medium' : ''}>
-            3. Preview & Confirm
-          </span>
+      {/* Progress Indicator */}
+      <div className="px-6 py-4 bg-gray-50 border-b">
+        <div className="flex items-center justify-center space-x-8">
+            <div className={`flex items-center ${currentStep === 'template-selection' ? 'text-rose-600 font-semibold' : 'text-gray-500'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mr-3 ${
+                currentStep === 'template-selection' 
+                  ? 'bg-rose-600 text-white' 
+                  : currentStep === 'placement' || currentStep === 'preview'
+                    ? 'bg-rose-600 text-white'
+                    : 'bg-gray-300 text-gray-600'
+              }`}>
+              1
+            </div>
+            Choose Template
+          </div>
+          
+          <div className={`flex items-center ${currentStep === 'placement' ? 'text-rose-600 font-semibold' : 'text-gray-500'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mr-3 ${
+              currentStep === 'placement' 
+                ? 'bg-rose-600 text-white' 
+                : currentStep === 'preview'
+                  ? 'bg-rose-600 text-white'
+                  : 'bg-gray-300 text-gray-600'
+            }`}>
+              2
+            </div>
+            Position Name
+          </div>
+          
+          <div className={`flex items-center ${currentStep === 'preview' ? 'text-rose-600 font-semibold' : 'text-gray-500'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mr-3 ${
+              currentStep === 'preview' 
+                ? 'bg-rose-600 text-white' 
+                : 'bg-gray-300 text-gray-600'
+            }`}>
+              3
+            </div>
+            Preview & Confirm
+          </div>
         </div>
       </div>
 
-      {currentStep === 'template-selection' && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <button
-              className={`border rounded-lg overflow-hidden shadow-sm transition-all hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-rose-500 w-full max-w-lg ${selectedTemplate?.id === 'premade' ? 'ring-2 ring-rose-500' : ''}`}
-              onClick={() => handleTemplateSelect({
-                id: 'premade',
-                name: 'Pre-made Template',
-                thumbnail: 'https://i.ibb.co/67JyzFx6/Beige-and-Cream-Geometric-Bordered-Completion-Certificate.png',
-                description: 'A beautiful pre-made certificate template.'
-              })}
-            >
-              <div className="w-full aspect-[297/210] bg-gray-100">
-                <img src="https://i.ibb.co/67JyzFx6/Beige-and-Cream-Geometric-Bordered-Completion-Certificate.png" alt="Pre-made Template" className="w-full h-full object-cover" />
-              </div>
-              <div className="p-4">
-                <h2 className="font-semibold text-lg mb-1">Pre-made Template</h2>
-                <p className="text-gray-600 text-sm">A beautiful pre-made certificate template.</p>
-              </div>
-            </button>
-          </div>
-          <div className="mt-4">
-            <button
-              className="border border-dashed border-rose-400 rounded-lg px-6 py-4 w-full text-rose-600 hover:bg-rose-50 transition-colors"
-              onClick={() => setIsUploaderOpen(true)}
-            >
-              + Add Custom Backdrop
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Main Content */}
+      <div className="p-6">
+        {currentStep === 'template-selection' && (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold text-gray-800 mb-2">Choose Your Certificate Template</h2>
+              <p className="text-gray-600">Select a pre-made template or upload your own custom backdrop</p>
+            </div>
 
-      {currentStep === 'placement' && backdropDataUrl && (
-        <div className="space-y-6">
-          <NamePlacementCanvas
-            backdropDataUrl={backdropDataUrl}
-            canvasSize={canvasSize}
-            initialNameBoxPx={nameBoxPx}
-            onCoordinatesChange={handleCoordinatesChange}
-            onConfirm={() => setCurrentStep('preview')}
-            onReset={handleReset}
-          />
-        </div>
-      )}
-
-      {currentStep === 'preview' && backdropDataUrl && (
-        <div className="space-y-6">
-          <CertificatePreview
-            backdropDataUrl={backdropDataUrl}
-            nameBoxPx={nameBoxPx}
-            canvasSize={canvasSize}
-          />
-
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Final Confirmation
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div>
-                <h4 className="font-medium text-gray-700 mb-2">Template</h4>
-                <p className="text-gray-600">
-                  {selectedTemplate ? selectedTemplate.name : 'Custom Upload'}
-                </p>
-              </div>
-              <div>
-                <h4 className="font-medium text-gray-700 mb-2">Name Box Position</h4>
-                <div className="text-sm text-gray-600 space-y-1">
-                  <p>Position: {nameBoxMm.xMm}mm, {nameBoxMm.yMm}mm</p>
-                  <p>Size: {nameBoxMm.widthMm}mm × {nameBoxMm.heightMm}mm</p>
+            {/* Pre-made Template */}
+            <div className="border border-gray-200 rounded-lg p-6 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
+                 onClick={() => handleTemplateSelect({
+                   id: 'premade',
+                   name: 'Pre-made Template',
+                   thumbnail: 'https://i.ibb.co/67JyzFx6/Beige-and-Cream-Geometric-Bordered-Completion-Certificate.png',
+                   description: 'A beautiful pre-made certificate template.'
+                 })}>
+              <div className="flex items-center space-x-4">
+                <img 
+                  src="https://i.ibb.co/67JyzFx6/Beige-and-Cream-Geometric-Bordered-Completion-Certificate.png" 
+                  alt="Pre-made Template"
+                  className="w-24 h-16 object-cover rounded border"
+                />
+                <div>
+                  <h3 className="font-semibold text-gray-800">Pre-made Template</h3>
+                  <p className="text-gray-600 text-sm">A beautiful pre-made certificate template.</p>
                 </div>
               </div>
             </div>
 
-            {/* Bulk/single selection UI */}
-            {participants && participants.length > 1 && !isBulk && (
-              <div className="mb-4 flex flex-col md:flex-row md:items-center gap-2">
-                <div className="flex items-center gap-2 mb-2 md:mb-0">
-                  <button
-                    className="px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 disabled:opacity-50"
-                    onClick={() => { setIsBulk(true); setSelectedParticipant(null); }}
-                    disabled={isGenerating}
-                  >
-                    Bulk Generate ({participants.length} participants)
-                  </button>
-                  <span className="text-gray-500">or</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="font-medium mr-2">Single:</label>
-                  <select
-                    className="border rounded px-2 py-1 w-full md:w-64"
-                    value={selectedParticipant ? selectedParticipant.id : ''}
-                    onChange={e => {
-                      const p = (participants as CertificateParticipant[]).find(p => p.id === e.target.value);
-                      setSelectedParticipant(p ?? null);
-                    }}
-                  >
-                    <option value="">Select participant</option>
-                    {(participants as CertificateParticipant[]).map(p => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="text-xs text-gray-500 mt-2 md:mt-0 md:ml-4">
-                  Recommended batch size: {recommendedBatchSize}
-                </div>
-              </div>
-            )}
-
-            {/* Progress bar for bulk generation */}
-            {isGenerating && progress && (
-              <div className="mb-4">
-                <div className="w-full bg-gray-200 rounded-full h-4 mb-2">
-                  <div
-                    className="bg-rose-600 h-4 rounded-full transition-all"
-                    style={{ width: `${progress.percentage}%` }}
-                  ></div>
-                </div>
-                <div className="flex justify-between text-sm text-gray-700">
-                  <span>{progress.completed} / {progress.total} completed</span>
-                  <span>{progress.percentage}%</span>
-                  <button className="text-rose-600 underline ml-4" onClick={() => {
-                    handleCancel();
-                    setIsGenerating(false);
-                    setProgress(null);
-                    setIsBulk(false);
-                  }}>Cancel</button>
-                </div>
-                {progress.completed === progress.total && (
-                  <div className="text-green-700 mt-2 text-center">Bulk ZIP ready! Download should start automatically.</div>
-                )}
-              </div>
-            )}
-
-            <div className="flex items-center justify-between">
+            {/* Custom Upload Option */}
+            <div className="border border-dashed border-gray-300 rounded-lg p-6 hover:border-blue-400 transition-colors">
               <button
-                onClick={() => setCurrentStep('placement')}
-                className="text-gray-600 hover:text-gray-800 transition-colors"
+                onClick={() => setIsUploaderOpen(true)}
+                className="w-full text-center"
               >
-                ← Adjust Position
+                <div className="text-blue-600 text-4xl mb-2">+</div>
+                <h3 className="font-semibold text-gray-800 mb-1">Add Custom Backdrop</h3>
+                <p className="text-gray-600 text-sm">Upload your own certificate background image</p>
               </button>
-              <div className="flex gap-3">
+            </div>
+          </div>
+        )}
+
+        {currentStep === 'placement' && backdropDataUrl && (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold text-gray-800 mb-2">Position the Name Area</h2>
+              <p className="text-gray-600">Drag and resize the red box to set where participant names will appear</p>
+            </div>
+
+            <NamePlacementCanvas
+              backdropDataUrl={backdropDataUrl}
+              canvasSize={canvasSize}
+              initialNameBoxPx={nameBoxPx}
+              onCoordinatesChange={handleCoordinatesChange}
+              onConfirm={() => setCurrentStep('preview')}
+              onReset={handleReset}
+            />
+          </div>
+        )}
+
+        {currentStep === 'preview' && backdropDataUrl && (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold text-gray-800 mb-2">Preview & Generate</h2>
+              <p className="text-gray-600">Customize the text style and generate your certificates</p>
+            </div>
+
+            <CertificatePreview
+              backdropDataUrl={backdropDataUrl}
+              nameBoxPx={nameBoxPx}
+              canvasSize={canvasSize}
+              sampleText={participants && participants.length > 0 ? participants[0].name : "John Doe"}
+              onStyleChange={(style) => {
+                setPreviewStyle(style);
+              }}
+            />
+
+            {/* Final Confirmation Section */}
+            <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+              <h3 className="text-lg font-semibold text-gray-800">Final Confirmation</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-medium text-gray-700 mb-1">Template</h4>
+                  <p className="text-gray-600">{selectedTemplate ? selectedTemplate.name : 'Custom Upload'}</p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium text-gray-700 mb-1">Name Box Position</h4>
+                  <p className="text-gray-600">
+                    Position: {nameBoxMm.xMm}mm, {nameBoxMm.yMm}mm<br />
+                    Size: {nameBoxMm.widthMm}mm × {nameBoxMm.heightMm}mm
+                  </p>
+                </div>
+              </div>
+
+              {/* Bulk/single selection UI */}
+              {participants && participants.length > 1 && !isBulk && (
+                <div className="border-t pt-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={() => { setIsBulk(true); setSelectedParticipant(null); }}
+                        disabled={isGenerating}
+                        className="px-6 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 disabled:opacity-50 transition-colors"
+                      >
+                        Bulk Generate ({participants.length} participants)
+                      </button>
+                      <span className="text-gray-500">or</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium text-gray-700">Single:</label>
+                      <select
+                        className="px-3 py-2 border border-rose-200 rounded-lg focus:ring-2 focus:ring-rose-200 focus:border-transparent"
+                        value={selectedParticipant?.id || ''}
+                        onChange={(e) => {
+                          const p = (participants as CertificateParticipant[]).find(p => p.id === e.target.value);
+                          setSelectedParticipant(p ?? null);
+                        }}
+                      >
+                        <option value="">Select participant</option>
+                        {(participants as CertificateParticipant[]).map(p => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">Recommended batch size: {recommendedBatchSize}</p>
+                </div>
+              )}
+
+              {/* Progress bar for bulk generation */}
+              {isGenerating && progress && (
+                <div className="border-t pt-4">
+                    <div className="mb-2">
+                      <div className="flex justify-between text-sm text-gray-600">
+                        <span>{progress.completed} / {progress.total} completed</span>
+                        <span>{progress.percentage}%</span>
+                      </div>
+                      <div className="w-full bg-rose-100 rounded-full h-2 mt-1">
+                        <div 
+                          className="bg-rose-600 h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${progress.percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        handleCancel();
+                        setIsGenerating(false);
+                        setProgress(null);
+                        setIsBulk(false);
+                      }}
+                      className="text-rose-600 hover:text-rose-800 text-sm font-medium"
+                    >
+                      Cancel
+                    </button>
+                  {progress.completed === progress.total && (
+                    <p className="text-green-600 text-sm mt-2">Bulk ZIP ready! Download should start automatically.</p>
+                  )}
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="flex items-center justify-between pt-4 border-t">
                 <button
-                  onClick={handleReset}
-                  className="px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors"
+                  onClick={() => setCurrentStep('placement')}
+                  className="text-gray-600 hover:text-gray-800 transition-colors"
                 >
-                  Start Over
+                  ← Adjust Position
                 </button>
-                <button
-                  onClick={handleConfirmPlacement}
-                  className="flex items-center gap-2 px-6 py-2 bg-rose-600 text-white rounded-md hover:bg-rose-700 transition-colors font-medium disabled:opacity-50"
-                  disabled={isGenerating || !canGenerate}
-                >
-                  <Download className="w-4 h-4" />
-                  {isBulk ? 'Generate ZIP' : 'Confirm & Generate'}
-                </button>
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleReset}
+                    className="px-4 py-2 text-gray-600 border border-rose-200 rounded-lg hover:bg-rose-50 transition-colors"
+                  >
+                    Start Over
+                  </button>
+                  
+                  <button
+                    onClick={handleConfirmPlacement}
+                    disabled={!canGenerate || isGenerating}
+                    className="flex items-center gap-2 px-6 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    {isBulk ? 'Generate ZIP' : 'Confirm & Generate'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
+      {/* Backdrop Uploader Modal */}
       <BackdropUploader
         isOpen={isUploaderOpen}
         onClose={() => setIsUploaderOpen(false)}
