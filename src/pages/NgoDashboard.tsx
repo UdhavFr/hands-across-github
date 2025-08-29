@@ -435,6 +435,17 @@ export function NgoDashboard() {
                 event={selectedEvent}
                 ngo={{ name: 'NGO' }}
                 participants={selectedEvent.participants || []}
+                template={{
+                  backdropDataUrl: '', // Default empty - admin should select template first
+                  nameBoxPx: { x: 200, y: 150, width: 400, height: 80 },
+                  nameBoxMm: { xMm: 50, yMm: 70, widthMm: 150, heightMm: 30 },
+                  canvasPxSize: { widthPx: 800, heightPx: 600 },
+                  fontFamily: 'helvetica',
+                  fontSize: 32,
+                  textColor: '#000000',
+                  textAlign: 'center',
+                  fontWeight: 'normal',
+                }}
                 onClose={() => setShowBulkGenerator(false)}
               />
             </div>

@@ -5,7 +5,12 @@ interface TemplatePreviewProps {
     backdrop: string; // base64 or URL
     nameBox: { xMm: number; yMm: number; widthMm: number; heightMm: number };
     fontFamily?: string;
-    nameStyle?: { fontSize: number; color: string; align?: 'center'|'left'|'right' };
+    nameStyle?: { 
+      fontSize: number; 
+      color: string; 
+      align?: 'center'|'left'|'right';
+      fontWeight?: 'normal' | 'bold';
+    };
   };
   sampleData: {
     name: string;
@@ -22,7 +27,7 @@ const PREVIEW_PX = { width: 594, height: 420 };
 export function TemplatePreview({ template, sampleData }: TemplatePreviewProps) {
   const scale = PREVIEW_PX.width / PDF_MM.width;
   const box = template.nameBox;
-  const style = template.nameStyle || { fontSize: 32, color: '#222', align: 'center' };
+  const style = template.nameStyle || { fontSize: 32, color: '#222', align: 'center', fontWeight: 'normal' };
 
   return (
     <div
@@ -58,8 +63,9 @@ export function TemplatePreview({ template, sampleData }: TemplatePreviewProps) 
           justifyContent:
             style.align === 'left' ? 'flex-start' : style.align === 'right' ? 'flex-end' : 'center',
           color: style.color,
-          fontFamily: template.fontFamily,
+          fontFamily: template.fontFamily || 'helvetica',
           fontSize: style.fontSize ? style.fontSize * scale : 32 * scale,
+          fontWeight: style.fontWeight || 'normal',
           background: 'rgba(255,255,255,0.01)',
           zIndex: 2,
           textAlign: style.align || 'center',

@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { v4 as uuidv4 } from 'uuid';
 import { pxToMm, type PxBox, type MmBox } from './coords';
+import { mapCssFontToJsPDF, mapFontWeight } from './fontMapping';
 
 // Type definitions for certificate generation payload
 export interface Participant {
@@ -31,6 +32,8 @@ export interface TemplateOptions {
   fontSize?: number;
   textColor?: string;
   textAlign?: 'left' | 'center' | 'right';
+  fontWeight?: 'normal' | 'bold';
+  lineHeight?: number;
 }
 
 // PDF dimensions for A4 landscape
@@ -43,6 +46,8 @@ const PDF_SIZE = { widthMm: 297, heightMm: 210 };
  * @param box - Box dimensions in mm
  * @param fontName - Font name to use
  * @param style - Font style (normal, bold, italic)
+ * @param textAlign - Text alignment (left, center, right)
+ * @param maxFontSize - Maximum font size allowed
  * @returns The final font size used
  */
 export function fitTextToBox(
@@ -50,9 +55,11 @@ export function fitTextToBox(
   text: string,
   box: MmBox,
   fontName: string = 'helvetica',
-  style: string = 'normal'
+  style: string = 'normal',
+  textAlign: 'left' | 'center' | 'right' = 'center',
+  maxFontSize: number = 32
 ): number {
-  const maxFontSize = 72;
+  const actualMaxFontSize = Math.min(maxFontSize, 72);
   const minFontSize = 8;
   const padding = 2; // mm padding inside the box
   const lineHeight = 1.2;
@@ -65,7 +72,7 @@ export function fitTextToBox(
   let lines: string[] = [];
   
   // Binary search for optimal font size
-  let maxSize = maxFontSize;
+  let maxSize = actualMaxFontSize;
   let minSize = minFontSize;
   
   while (minSize <= maxSize) {
@@ -154,7 +161,7 @@ export function fitTextToBox(
       // Fallback if getTextWidth is not available
       xPosition = box.xMm + availableWidth / 2;
     } else {
-      switch (style) {
+      switch (textAlign) {
         case 'center':
           xPosition = box.xMm + (box.widthMm - lineWidth) / 2;
           break;
@@ -241,24 +248,28 @@ export function generateCertificate(
   }
   
   // Handle custom font embedding if provided
+  let actualFontName = 'helvetica';
+  const fontWeight = mapFontWeight(options.fontWeight);
+  
   if (options.fontFamily && options.fontFamily.startsWith('data:font/ttf;base64,')) {
     try {
       // Extract base64 font data
       const fontData = options.fontFamily.split(',')[1];
-      const fontName = 'CustomFont';
+      const customFontName = 'CustomFont';
       
       // Add the font to jsPDF
-      doc.addFileToVFS(`${fontName}.ttf`, fontData);
-      doc.addFont(`${fontName}.ttf`, fontName, 'normal');
-      doc.setFont(fontName);
+      doc.addFileToVFS(`${customFontName}.ttf`, fontData);
+      doc.addFont(`${customFontName}.ttf`, customFontName, 'normal');
+      doc.setFont(customFontName);
+      actualFontName = customFontName;
     } catch (error) {
       console.warn('Failed to embed custom font, falling back to default:', error);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('helvetica', fontWeight);
     }
   } else {
-    // Use standard font
-    const fontName = options.fontFamily || 'helvetica';
-    doc.setFont(fontName, 'normal');
+    // Map CSS font to jsPDF font
+    actualFontName = mapCssFontToJsPDF(options.fontFamily || 'helvetica');
+    doc.setFont(actualFontName, fontWeight);
   }
   
   // Set text color
@@ -271,8 +282,10 @@ export function generateCertificate(
     doc,
     participant.name,
     nameBoxMm,
-    options.fontFamily && !options.fontFamily.startsWith('data:') ? options.fontFamily : 'helvetica',
-    'bold'
+    actualFontName,
+    fontWeight,
+    options.textAlign || 'center',
+    options.fontSize || 32
   );
   
   // Add certificate elements in strategic positions

@@ -20,6 +20,11 @@ interface CertificatePayload {
   canvasPxSize: CanvasSize;
   nameBoxPx: PxBox;
   nameBoxMm: MmBox;
+  fontFamily?: string;
+  fontSize?: number;
+  textColor?: string;
+  textAlign?: 'left' | 'center' | 'right';
+  fontWeight?: 'normal' | 'bold';
 }
 // Types for props
 export type CertificateEvent = {
@@ -54,6 +59,12 @@ export function CertificateGeneratorUI({ onConfirmPlacement, event, participants
   const [canvasSize] = useState<CanvasSize>({ widthPx: 800, heightPx: 600 });
   const [nameBoxPx, setNameBoxPx] = useState<PxBox>({ x: 200, y: 150, width: 400, height: 80 });
   const [nameBoxMm, setNameBoxMm] = useState<MmBox>({ xMm: 0, yMm: 0, widthMm: 0, heightMm: 0 });
+  // Add text styling state
+  const [fontFamily, setFontFamily] = useState<string>('helvetica');
+  const [fontSize, setFontSize] = useState<number>(32);
+  const [textColor, setTextColor] = useState<string>('#000000');
+  const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>('center');
+  const [fontWeight, setFontWeight] = useState<'normal' | 'bold'>('normal');
 
   const handleTemplateSelect = useCallback((template: Template) => {
     setSelectedTemplate(template);
@@ -78,6 +89,11 @@ export function CertificateGeneratorUI({ onConfirmPlacement, event, participants
       canvasPxSize: canvasSize,
       nameBoxPx,
       nameBoxMm,
+      fontFamily,
+      fontSize,
+      textColor,
+      textAlign,
+      fontWeight,
     };
 
     // If no event/participants/ngo, fallback to default
@@ -114,6 +130,11 @@ export function CertificateGeneratorUI({ onConfirmPlacement, event, participants
             canvasPxSize: canvasSize,
             nameBoxPx,
             nameBoxMm,
+            fontFamily,
+            fontSize,
+            textColor,
+            textAlign,
+            fontWeight,
           },
           {
             onProgress: setProgress,
@@ -151,6 +172,11 @@ export function CertificateGeneratorUI({ onConfirmPlacement, event, participants
           canvasPxSize: canvasSize,
           nameBoxPx,
           nameBoxMm,
+          fontFamily,
+          fontSize,
+          textColor,
+          textAlign,
+          fontWeight,
         }
       );
       alert('Certificate downloaded!');
@@ -171,6 +197,11 @@ export function CertificateGeneratorUI({ onConfirmPlacement, event, participants
     setBackdropDataUrl('');
     setNameBoxPx({ x: 200, y: 150, width: 400, height: 80 });
     setNameBoxMm({ xMm: 0, yMm: 0, widthMm: 0, heightMm: 0 });
+    setFontFamily('helvetica');
+    setFontSize(32);
+    setTextColor('#000000');
+    setTextAlign('center');
+    setFontWeight('normal');
   }, []);
 
   const handleBack = useCallback(() => {

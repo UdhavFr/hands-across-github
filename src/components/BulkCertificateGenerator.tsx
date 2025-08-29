@@ -8,10 +8,21 @@ interface BulkCertificateGeneratorProps {
   event: EventData;
   ngo: NgoData;
   participants: Participant[];
+  template: {
+    backdropDataUrl: string;
+    nameBoxPx: { x: number; y: number; width: number; height: number };
+    nameBoxMm?: { xMm: number; yMm: number; widthMm: number; heightMm: number };
+    canvasPxSize: { widthPx: number; heightPx: number };
+    fontFamily?: string;
+    fontSize?: number;
+    textColor?: string;
+    textAlign?: 'left' | 'center' | 'right';
+    fontWeight?: 'normal' | 'bold';
+  };
   onClose: () => void;
 }
 
-export function BulkCertificateGenerator({ event, ngo, participants: initialParticipants, onClose }: BulkCertificateGeneratorProps) {
+export function BulkCertificateGenerator({ event, ngo, participants: initialParticipants, template, onClose }: BulkCertificateGeneratorProps) {
   const [participants] = useState<Participant[]>(initialParticipants || []);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState<BulkGenerationProgress | null>(null);
@@ -24,12 +35,7 @@ export function BulkCertificateGenerator({ event, ngo, participants: initialPart
 
 
 
-  // Provide a default template for now (should be replaced with real template selection)
-  const defaultTemplate = {
-    backdropDataUrl: '', // TODO: Provide a real image or let admin select
-    nameBoxPx: { x: 100, y: 100, width: 200, height: 50 },
-    canvasPxSize: { widthPx: 800, heightPx: 600 },
-  };
+  // Use the provided template instead of hardcoded default
 
   const validateAndStartGeneration = useCallback(async () => {
     const validationErrors = validateParticipants(participants);
@@ -52,7 +58,7 @@ export function BulkCertificateGenerator({ event, ngo, participants: initialPart
         participants,
         event,
         ngo,
-        defaultTemplate,
+        template,
         {
           batchSize,
           signal: controller.signal,
@@ -84,7 +90,7 @@ export function BulkCertificateGenerator({ event, ngo, participants: initialPart
       setIsGenerating(false);
       setAbortController(null);
     }
-  }, [participants, event, ngo]);
+  }, [participants, event, ngo, template]);
 
   const handleCancelGeneration = useCallback(() => {
     if (abortController) {
