@@ -1,10 +1,13 @@
 export interface AppUser {
   id: string;
-  email: string;
+  email: string | null;
   full_name: string;
-  avatar_url?: string;
+  avatar_url?: string | null;
   user_type: 'volunteer' | 'ngo';
-  created_at: string;
+  username: string;
+  status?: string;
+  created_at: string | null;
+  updated_at?: string | null;
 }
 
 export interface Event {

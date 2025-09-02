@@ -1,7 +1,6 @@
 import { jsPDF } from 'jspdf';
-import { v4 as uuidv4 } from 'uuid';
 import { pxToMm, type PxBox, type MmBox } from './coords';
-import { mapCssFontToJsPDF, mapFontWeight } from './fontMapping';
+import { mapCssFontToJsPDF } from './fontMapping';
 
 // Type definitions for certificate generation payload
 export interface Participant {
@@ -203,8 +202,8 @@ export function fitTextToBox(
  */
 export function generateCertificate(
   participant: Participant,
-  event: EventData,
-  ngo: NgoData,
+  _event: EventData,
+  _ngo: NgoData,
   options: TemplateOptions
 ): jsPDF {
   // Initialize jsPDF in landscape A4 format with mm units
@@ -240,7 +239,6 @@ export function generateCertificate(
 
   // Handle custom font embedding if provided
   let actualFontName = 'helvetica';
-  const fontWeight = mapFontWeight(options.fontWeight);
 
   if (options.fontFamily && options.fontFamily.startsWith('data:font/ttf;base64,')) {
     try {

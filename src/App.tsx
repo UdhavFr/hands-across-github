@@ -10,6 +10,7 @@ import { EventsPage } from './pages/EventsPage';
 import { NGOsPage } from './pages/NGOsPage';
 import { AuthCallbackPage } from './components/AuthCallbackPage';
 import { NgoDashboard } from './pages/NgoDashboard';
+import { ProfilePage } from './pages/ProfilePage';
 import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
 import { RequireAuth } from './components/RequireAuth';
@@ -76,6 +77,14 @@ function App() {
               element={
                 <RequireAuth role="ngo">
                   <NgoDashboard />
+                </RequireAuth>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <RequireAuth>
+                  <ProfilePage />
                 </RequireAuth>
               } 
             />

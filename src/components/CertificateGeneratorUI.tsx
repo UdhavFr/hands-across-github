@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
 import { generateBulkCertificates, downloadSingleCertificate, BulkGenerationProgress, getRecommendedBatchSize } from '../utils/files';
-import { TemplateSelector } from './TemplateSelector';
 import { BackdropUploader } from './BackdropUploader';
 import { NamePlacementCanvas } from './NamePlacementCanvas';
 import { CertificatePreview } from './CertificatePreview';
