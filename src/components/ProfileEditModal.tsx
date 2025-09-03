@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, User, Mail, Type, Loader2, Check, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useDebounce } from '../hooks/useDebounce';
+import { AvatarUpload } from './AvatarUpload';
 import type { AppUser } from '../types';
 import toast from 'react-hot-toast';
 
@@ -165,7 +166,21 @@ export function ProfileEditModal({ user, isOpen, onClose, onUserUpdate }: Profil
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Avatar Upload */}
+          <div className="flex justify-center">
+            <AvatarUpload
+              currentAvatarUrl={user.avatar_url}
+              userId={user.id}
+              onAvatarUpdate={(url) => {
+                const updatedUser = { ...user, avatar_url: url };
+                onUserUpdate(updatedUser);
+              }}
+              size="lg"
+            />
+          </div>
+
+          <div className="space-y-4">
           {/* Full Name */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
@@ -229,6 +244,7 @@ export function ProfileEditModal({ user, isOpen, onClose, onUserUpdate }: Profil
               className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               required
             />
+            </div>
           </div>
 
           {/* Action Buttons */}

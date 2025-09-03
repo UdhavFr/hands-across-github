@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { User, Mail, Calendar, Type, Loader2, Edit } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ProfileEditModal } from '../components/ProfileEditModal';
+import { Avatar } from '../components/Avatar';
 import type { AppUser } from '../types';
 import toast from 'react-hot-toast';
 
@@ -69,19 +70,13 @@ export function ProfilePage() {
         {/* Profile Header */}
         <div className="bg-card rounded-lg shadow-sm border border-border p-6 mb-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
-                {user.avatar_url ? (
-                  <img
-                    src={user.avatar_url}
-                    alt={user.full_name}
-                    className="h-16 w-16 rounded-full object-cover"
-                  />
-                ) : (
-                  <User className="h-8 w-8 text-primary" />
-                )}
-              </div>
-              <div>
+              <div className="flex items-center space-x-4">
+                <Avatar 
+                  src={user.avatar_url} 
+                  alt={user.full_name} 
+                  size="lg" 
+                />
+                <div>
                 <h1 className="text-2xl font-semibold text-foreground">{user.full_name}</h1>
                 <p className="text-muted-foreground capitalize">{user.user_type}</p>
               </div>
