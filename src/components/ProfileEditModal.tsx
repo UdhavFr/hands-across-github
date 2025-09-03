@@ -33,13 +33,13 @@ export function ProfileEditModal({ user, isOpen, onClose, onUserUpdate }: Profil
   });
 
   // Debounced username validation
-  const checkUsernameDebounced = useDebounce(async () => {
-    if (!formData.username || formData.username === user.username) {
+  const checkUsernameDebounced = useDebounce(async (username: string) => {
+    if (!username || username === user.username) {
       setUsernameValidation({ isChecking: false, isValid: null, message: '' });
       return;
     }
 
-    if (formData.username.length < 3) {
+    if (username.length < 3) {
       setUsernameValidation({
         isChecking: false,
         isValid: false,
@@ -48,7 +48,7 @@ export function ProfileEditModal({ user, isOpen, onClose, onUserUpdate }: Profil
       return;
     }
 
-    if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
       setUsernameValidation({
         isChecking: false,
         isValid: false,
@@ -63,7 +63,7 @@ export function ProfileEditModal({ user, isOpen, onClose, onUserUpdate }: Profil
       const { data, error } = await supabase
         .from('users')
         .select('username')
-        .eq('username', formData.username)
+        .eq('username', username)
         .neq('id', user.id)
         .maybeSingle();
 
@@ -101,7 +101,7 @@ export function ProfileEditModal({ user, isOpen, onClose, onUserUpdate }: Profil
   }, 500);
 
   useEffect(() => {
-    checkUsernameDebounced();
+    checkUsernameDebounced(formData.username);
   }, [formData.username, checkUsernameDebounced]);
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -1,4 +1,5 @@
 import { User } from 'lucide-react';
+import { useState } from 'react';
 import { cn } from '../lib/utils';
 
 interface AvatarProps {
@@ -23,36 +24,27 @@ const iconSizes = {
 };
 
 export function Avatar({ src, alt = 'User avatar', size = 'md', className }: AvatarProps) {
+  const [imageError, setImageError] = useState(false);
+
   return (
     <div className={cn(
       'relative overflow-hidden rounded-full bg-muted flex items-center justify-center',
       sizeClasses[size],
       className
     )}>
-      {src ? (
+      {src && !imageError ? (
         <img
           src={src}
           alt={alt}
           className="h-full w-full object-cover"
-          onError={(e) => {
-            // Hide broken image and show fallback
-            e.currentTarget.style.display = 'none';
-            const parent = e.currentTarget.parentElement;
-            if (parent) {
-              const fallback = parent.querySelector('.avatar-fallback');
-              if (fallback) {
-                (fallback as HTMLElement).style.display = 'flex';
-              }
-            }
-          }}
+          onError={() => setImageError(true)}
+          onLoad={() => setImageError(false)}
         />
-      ) : null}
-      <div className={cn(
-        'avatar-fallback absolute inset-0 flex items-center justify-center',
-        src ? 'hidden' : 'flex'
-      )}>
-        <User className={cn('text-muted-foreground', iconSizes[size])} />
-      </div>
+      ) : (
+        <div className="flex items-center justify-center h-full w-full">
+          <User className={cn('text-muted-foreground', iconSizes[size])} />
+        </div>
+      )}
     </div>
   );
 }
