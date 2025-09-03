@@ -149,6 +149,13 @@ export function Header() {
                         >
                           View Profile
                         </Link>
+                        <Link 
+                          to="/settings" 
+                          className="block px-4 py-2 text-gray-700 hover:bg-rose-50 hover:text-rose-600"
+                          onClick={() => setShowUserMenu(false)}
+                        >
+                          Account Settings
+                        </Link>
                         <button
                           onClick={handleLogout}
                           className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-rose-50 hover:text-rose-600"
