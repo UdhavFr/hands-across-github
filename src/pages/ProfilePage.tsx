@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { User, Mail, Calendar, Type, Loader2, Edit } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { ProfileEditModal } from '../components/ProfileEditModal';
 import type { AppUser } from '../types';
 import toast from 'react-hot-toast';
 
 export function ProfilePage() {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     fetchUserProfile();
@@ -85,7 +87,7 @@ export function ProfilePage() {
               </div>
             </div>
             <button
-              onClick={() => toast('Edit profile functionality coming soon!')}
+              onClick={() => setIsEditModalOpen(true)}
               className="inline-flex items-center px-4 py-2 border border-border rounded-md text-sm font-medium text-foreground bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
             >
               <Edit className="h-4 w-4 mr-2" />
@@ -176,6 +178,16 @@ export function ProfilePage() {
             </div>
           </div>
         </div>
+
+        {/* Profile Edit Modal */}
+        {user && (
+          <ProfileEditModal
+            user={user}
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            onUserUpdate={setUser}
+          />
+        )}
       </div>
     </div>
   );
