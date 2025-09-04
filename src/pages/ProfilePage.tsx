@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { User, Mail, Calendar, Type, Loader2, Edit } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { User, Calendar, Mail, Type, Loader2, Edit } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ProfileEditModal } from '../components/ProfileEditModal';
 import { Avatar } from '../components/Avatar';

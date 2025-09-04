@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { X, User, Mail, Type, Loader2, Check, AlertCircle } from 'lucide-react';
+import { X, User, Mail, Type, Loader2, Check, AlertCircle, FileText, MapPin, Globe } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useDebounce } from '../hooks/useDebounce';
 import { AvatarUpload } from './AvatarUpload';
+import { SkillsInput } from './SkillsInput';
+import { SocialLinksInput } from './SocialLinksInput';
 import type { AppUser } from '../types';
 import toast from 'react-hot-toast';
 
@@ -24,6 +26,11 @@ export function ProfileEditModal({ user, isOpen, onClose, onUserUpdate }: Profil
     full_name: user.full_name,
     username: user.username,
     email: user.email || '',
+    bio: user.bio || '',
+    location: user.location || '',
+    website: user.website || '',
+    skills: user.skills || [],
+    social_links: user.social_links || {},
   });
   const [isLoading, setIsLoading] = useState(false);
   const [usernameValidation, setUsernameValidation] = useState<UsernameValidation>({
@@ -121,6 +128,11 @@ export function ProfileEditModal({ user, isOpen, onClose, onUserUpdate }: Profil
           full_name: formData.full_name,
           username: formData.username,
           email: formData.email,
+          bio: formData.bio,
+          location: formData.location,
+          website: formData.website,
+          skills: formData.skills,
+          social_links: formData.social_links,
           updated_at: new Date().toISOString(),
         })
         .eq('id', user.id)
@@ -145,7 +157,7 @@ export function ProfileEditModal({ user, isOpen, onClose, onUserUpdate }: Profil
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -244,7 +256,74 @@ export function ProfileEditModal({ user, isOpen, onClose, onUserUpdate }: Profil
               className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               required
             />
-            </div>
+          </div>
+
+          {/* Bio */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              <FileText className="h-4 w-4 inline mr-2" />
+              Bio
+            </label>
+            <textarea
+              value={formData.bio}
+              onChange={(e) => handleInputChange('bio', e.target.value)}
+              placeholder="Tell us about yourself..."
+              rows={3}
+              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+            />
+          </div>
+
+          {/* Location */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              <MapPin className="h-4 w-4 inline mr-2" />
+              Location
+            </label>
+            <input
+              type="text"
+              value={formData.location}
+              onChange={(e) => handleInputChange('location', e.target.value)}
+              placeholder="City, Country"
+              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
+          </div>
+
+          {/* Website */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              <Globe className="h-4 w-4 inline mr-2" />
+              Website
+            </label>
+            <input
+              type="url"
+              value={formData.website}
+              onChange={(e) => handleInputChange('website', e.target.value)}
+              placeholder="https://yourwebsite.com"
+              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
+          </div>
+
+          {/* Skills */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Skills & Interests
+            </label>
+            <SkillsInput
+              skills={formData.skills}
+              onChange={(skills) => handleInputChange('skills', skills)}
+            />
+          </div>
+
+          {/* Social Links */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Social Links
+            </label>
+            <SocialLinksInput
+              socialLinks={formData.social_links}
+              onChange={(links) => handleInputChange('social_links', links)}
+            />
+          </div>
           </div>
 
           {/* Action Buttons */}

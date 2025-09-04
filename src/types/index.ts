@@ -8,6 +8,12 @@ export interface AppUser {
   status?: string;
   created_at: string | null;
   updated_at?: string | null;
+  bio?: string | null;
+  skills?: string[] | null;
+  social_links?: Record<string, string> | null;
+  location?: string | null;
+  website?: string | null;
+  profile_completion_score?: number | null;
 }
 
 export interface Event {
