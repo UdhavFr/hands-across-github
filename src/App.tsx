@@ -6,12 +6,15 @@ import { Toaster } from 'react-hot-toast';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
+import { Footer } from './components/Footer';
 import { EventsPage } from './pages/EventsPage';
 import { NGOsPage } from './pages/NGOsPage';
 import { AuthCallbackPage } from './components/AuthCallbackPage';
 import { NgoDashboard } from './pages/NgoDashboard';
 import { ProfilePage } from './pages/ProfilePage';
 import { SettingsPage } from './pages/SettingsPage';
+import { PrivacyPage } from './pages/PrivacyPage';
+import { TermsPage } from './pages/TermsPage';
 import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
 import { RequireAuth } from './components/RequireAuth';
@@ -56,49 +59,55 @@ function App() {
         <div className="min-h-screen bg-gray-50 relative">
           <Toaster position="top-right" />
           <Header />
-          <Routes>
-            <Route 
-              path="/" 
-              element={
-                <>
-                  <Hero />
-                  <EventsPage />
-                  <NGOsPage />
-                </>
-              } 
-            />
-            <Route path="/events" element={<EventsPage />} />
-            <Route path="/ngos" element={<NGOsPage />} />
-            <Route 
-              path="/auth/callback" 
-              element={<AuthCallbackPage />} 
-            />
-            <Route 
-              path="/ngo-dashboard" 
-              element={
-                <RequireAuth role="ngo">
-                  <NgoDashboard />
-                </RequireAuth>
-              } 
-            />
-            <Route 
-              path="/profile" 
-              element={
-                <RequireAuth>
-                  <ProfilePage />
-                </RequireAuth>
-              } 
-            />
-            <Route 
-              path="/settings" 
-              element={
-                <RequireAuth>
-                  <SettingsPage />
-                </RequireAuth>
-              } 
-            />
-            {/* Removed /certificate-generator route: CertificateGeneratorUI is NGO-only and accessible via dashboard */}
-          </Routes>
+          <div className="flex flex-col min-h-screen">
+            <main className="flex-1">
+              <Routes>
+                <Route 
+                  path="/" 
+                  element={
+                    <>
+                      <Hero />
+                      <EventsPage />
+                      <NGOsPage />
+                    </>
+                  } 
+                />
+                <Route path="/events" element={<EventsPage />} />
+                <Route path="/ngos" element={<NGOsPage />} />
+                <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/terms" element={<TermsPage />} />
+                <Route 
+                  path="/auth/callback" 
+                  element={<AuthCallbackPage />} 
+                />
+                <Route 
+                  path="/ngo-dashboard" 
+                  element={
+                    <RequireAuth role="ngo">
+                      <NgoDashboard />
+                    </RequireAuth>
+                  } 
+                />
+                <Route 
+                  path="/profile" 
+                  element={
+                    <RequireAuth>
+                      <ProfilePage />
+                    </RequireAuth>
+                  } 
+                />
+                <Route 
+                  path="/settings" 
+                  element={
+                    <RequireAuth>
+                      <SettingsPage />
+                    </RequireAuth>
+                  } 
+                />
+              </Routes>
+            </main>
+            <Footer />
+          </div>
         </div>
       </BrowserRouter>
     </>
