@@ -6,7 +6,7 @@ interface NgoAnalyticsProps {
   ngoId: string;
 }
 
-export function NgoAnalytics({ ngoId }: NgoAnalyticsProps) {
+function NgoAnalytics({ ngoId }: NgoAnalyticsProps) {
   const [stats, setStats] = useState({
     totalEvents: 0,
     totalVolunteers: 0,
@@ -113,3 +113,5 @@ export function NgoAnalytics({ ngoId }: NgoAnalyticsProps) {
     </div>
   );
 }
+
+export default NgoAnalytics;

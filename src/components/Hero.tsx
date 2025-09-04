@@ -1,4 +1,5 @@
 import { Heart, Users, Calendar } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export function Hero() {
   return (
@@ -16,20 +17,20 @@ export function Hero() {
               </p>
               <div className="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
                 <div className="rounded-md shadow">
-                  <a
-                    href="http://localhost:5173/events"
+                  <Link
+                    to="/events"
                     className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-rose-600 hover:bg-rose-700 md:py-4 md:text-lg md:px-10"
                   >
                     Register for Events
-                  </a>
+                  </Link>
                 </div>
                 <div className="mt-3 sm:mt-0 sm:ml-3">
-                  <a
-                    href="http://localhost:5173/ngos"
+                  <Link
+                    to="/ngos"
                     className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-rose-600 bg-rose-100 hover:bg-rose-200 md:py-4 md:text-lg md:px-10"
                   >
                     Enrol to NGOs
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>

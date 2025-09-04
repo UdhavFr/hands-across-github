@@ -6,13 +6,22 @@ import { Toaster } from 'react-hot-toast';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
-import { EventsPage } from './pages/EventsPage';
-import { NGOsPage } from './pages/NGOsPage';
 import { AuthCallbackPage } from './components/AuthCallbackPage';
-import { NgoDashboard } from './pages/NgoDashboard';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense, lazy } from 'react';
 import { supabase } from './lib/supabase';
 import { RequireAuth } from './components/RequireAuth';
+
+// Loading component for lazy-loaded pages
+const PageLoader = () => (
+  <div className="min-h-[50vh] flex items-center justify-center">
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-rose-600"></div>
+  </div>
+);
+
+// Lazy load pages and heavy components
+const EventsPage = lazy(() => import('./pages/EventsPage'));
+const NGOsPage = lazy(() => import('./pages/NGOsPage'));
+const NgoDashboard = lazy(() => import('./pages/NgoDashboard'));
 
 
 function App() {
@@ -60,13 +69,29 @@ function App() {
               element={
                 <>
                   <Hero />
-                  <EventsPage />
-                  <NGOsPage />
+                  <Suspense fallback={<PageLoader />}>
+                    <EventsPage />
+                    <NGOsPage />
+                  </Suspense>
                 </>
               } 
             />
-            <Route path="/events" element={<EventsPage />} />
-            <Route path="/ngos" element={<NGOsPage />} />
+            <Route 
+              path="/events" 
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <EventsPage />
+                </Suspense>
+              } 
+            />
+            <Route 
+              path="/ngos" 
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <NGOsPage />
+                </Suspense>
+              } 
+            />
             <Route 
               path="/auth/callback" 
               element={<AuthCallbackPage />} 
@@ -75,11 +100,12 @@ function App() {
               path="/ngo-dashboard" 
               element={
                 <RequireAuth role="ngo">
-                  <NgoDashboard />
+                  <Suspense fallback={<PageLoader />}>
+                    <NgoDashboard />
+                  </Suspense>
                 </RequireAuth>
               } 
             />
-            {/* Removed /certificate-generator route: CertificateGeneratorUI is NGO-only and accessible via dashboard */}
           </Routes>
         </div>
       </BrowserRouter>

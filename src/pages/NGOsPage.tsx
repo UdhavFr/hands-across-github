@@ -8,7 +8,7 @@ import { useLocation } from '../hooks/useLocation';
 import type { NGOProfile } from '../types';
 import type { LocationFilterData, LocationData } from '../types/location';
 
-export function NGOsPage() {
+function NGOsPage() {
   const [ngos, setNgos] = useState<NGOProfile[]>([]);
   const [filteredNgos, setFilteredNgos] = useState<NGOProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -283,3 +283,5 @@ export function NGOsPage() {
     </div>
   );
 }
+
+export default NGOsPage;
