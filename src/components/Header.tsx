@@ -40,7 +40,8 @@ export function Header() {
           email: publicUser.email || authUser.email || '',
           full_name: publicUser.full_name || authUser.user_metadata?.full_name || '',
           user_type: publicUser.user_type || authUser.user_metadata?.user_type || 'volunteer',
-          created_at: publicUser.created_at || authUser.created_at
+          created_at: publicUser.created_at || authUser.created_at,
+          username: publicUser.username || authUser.user_metadata?.username || (authUser.email ? authUser.email.split('@')[0] : '')
         });
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -110,9 +111,9 @@ export function Header() {
     <header className="bg-white shadow-sm sticky top-0 z-30">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
-          {/* Logo and Title */}
+          {/* Logo */}
           <div className="flex items-center">
-            <Heart className="h-8 w-8 text-rose-600" aria-label="JoinHands logo" />
+            <Heart className="h-8 w-8 text-rose-600" />
             <Link to="/" className="ml-2 text-2xl font-bold hover:text-rose-600 transition-colors" onClick={() => setShowMobileMenu(false)}>
               JoinHands
             </Link>
@@ -136,7 +137,7 @@ export function Header() {
                 )}
                                  <div className="relative">
                    <button onClick={() => setShowUserMenu(v => !v)} className="flex items-center space-x-1 hover:text-rose-600 transition-colors">
-                     <span>{user.full_name || user.email.split('@')[0]}</span>
+                     <span>{user.full_name || user.username}</span>
                      <User className="h-5 w-5" />
                    </button>
                    {showUserMenu && (

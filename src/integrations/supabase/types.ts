@@ -305,36 +305,54 @@ export type Database = {
       users: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           created_at: string | null
           email: string | null
           full_name: string
           id: string
+          location: string | null
+          profile_completion_score: number | null
+          skills: string[] | null
+          social_links: Json | null
           status: string | null
           updated_at: string | null
           user_type: string
           username: string
+          website: string | null
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string | null
           email?: string | null
           full_name: string
           id: string
+          location?: string | null
+          profile_completion_score?: number | null
+          skills?: string[] | null
+          social_links?: Json | null
           status?: string | null
           updated_at?: string | null
           user_type: string
           username?: string
+          website?: string | null
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string | null
           email?: string | null
           full_name?: string
           id?: string
+          location?: string | null
+          profile_completion_score?: number | null
+          skills?: string[] | null
+          social_links?: Json | null
           status?: string | null
           updated_at?: string | null
           user_type?: string
           username?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -345,6 +363,10 @@ export type Database = {
     Functions: {
       calculate_distance_km: {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
+        Returns: number
+      }
+      calculate_profile_completion: {
+        Args: { user_row: Database["public"]["Tables"]["users"]["Row"] }
         Returns: number
       }
     }

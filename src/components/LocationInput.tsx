@@ -186,7 +186,7 @@ export function LocationInput({
       </div>
 
       {locationError && (
-        <p className="mt-1 text-sm text-destructive">{locationError}</p>
+        <p className="mt-1 text-sm text-red-600">{locationError}</p>
       )}
 
       {/* Suggestions dropdown */}

@@ -34,6 +34,7 @@ export function RequireAuth({ children, role }: {
     email: supabaseUser.email!,
     full_name: supabaseUser.user_metadata?.full_name || '',
     user_type: supabaseUser.user_metadata?.user_type || 'volunteer',
+    username: supabaseUser.user_metadata?.username || supabaseUser.email?.split('@')[0] || '',
     created_at: supabaseUser.created_at
   });
 
