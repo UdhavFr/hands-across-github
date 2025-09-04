@@ -179,11 +179,13 @@ export function SettingsPage() {
     setUsernameValidation({ isChecking: true, isValid: null, message: 'Checking availability...' });
 
     try {
+      if (!user?.id) return;
+
       const { data, error } = await supabase
         .from('users')
         .select('username')
         .eq('username', username)
-        .neq('id', user?.id)
+        .neq('id', user.id)
         .maybeSingle();
 
       if (error) {
@@ -246,6 +248,8 @@ export function SettingsPage() {
     setProfileLoading(true);
 
     try {
+      if (!user?.id) return;
+
       const { error } = await supabase
         .from('users')
         .update({
@@ -253,7 +257,7 @@ export function SettingsPage() {
           username: profileForm.username,
           updated_at: new Date().toISOString()
         })
-        .eq('id', user?.id);
+        .eq('id', user.id);
 
       if (error) throw error;
 
@@ -378,11 +382,13 @@ export function SettingsPage() {
         return;
       }
 
+      if (!user?.id) return;
+
       // Delete user data from public tables first
       const { error: deleteUserError } = await supabase
         .from('users')
         .delete()
-        .eq('id', user?.id);
+        .eq('id', user.id);
 
       if (deleteUserError) {
         console.error('Error deleting user data:', deleteUserError);
@@ -390,7 +396,7 @@ export function SettingsPage() {
       }
 
       // Delete auth user (this will cascade to related data)
-      const { error } = await supabase.auth.admin.deleteUser(user?.id || '');
+      const { error } = await supabase.auth.admin.deleteUser(user.id);
 
       if (error) throw error;
 
@@ -1001,7 +1007,7 @@ export function SettingsPage() {
                       <div className="space-y-3">
                         <button
                           type="button"
-                          onClick={() => toast.info('Data export feature coming soon')}
+                          onClick={() => toast.success('Data export feature coming soon')}
                           className="flex items-center px-4 py-2 border border-border text-foreground bg-background hover:bg-accent hover:text-accent-foreground rounded-md transition-colors"
                         >
                           <Save className="h-4 w-4 mr-2" />
