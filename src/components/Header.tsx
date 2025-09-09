@@ -142,6 +142,21 @@ export function Header() {
                    </button>
                    {showUserMenu && (
                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
+                       <Link
+                         to="/profile"
+                         onClick={() => setShowUserMenu(false)}
+                         className="block px-4 py-2 text-gray-700 hover:bg-rose-50 hover:text-rose-600"
+                       >
+                         Profile
+                       </Link>
+                       <Link
+                         to="/settings"
+                         onClick={() => setShowUserMenu(false)}
+                         className="block px-4 py-2 text-gray-700 hover:bg-rose-50 hover:text-rose-600"
+                       >
+                         Settings
+                       </Link>
+                       <hr className="my-1" />
                        <button
                          onClick={handleLogout}
                          className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-rose-50 hover:text-rose-600"

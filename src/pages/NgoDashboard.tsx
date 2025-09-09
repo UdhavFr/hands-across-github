@@ -11,6 +11,8 @@ import { ActivityFeed } from '../components/AvtivityFeed';
 import { TopVolunteersTable } from '../components/TopVolunteersTable';
 import { EventMetricsTable } from '../components/EventMetricsTable';
 import { RealtimeStatus } from '../components/RealtimeStatus';
+import { NgoProfileForm } from '../components/NgoProfileForm';
+import type { NGOProfile } from '../types';
 
 // Loading spinner for lazy-loaded components
 const ComponentLoader = () => (
@@ -78,6 +80,8 @@ function NgoDashboard() {
   const [removingParticipant, setRemovingParticipant] = useState<string | null>(null);
   const [ngoId, setNgoId] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
+  const [ngoProfile, setNgoProfile] = useState<NGOProfile | null>(null);
+  const [showProfileForm, setShowProfileForm] = useState(false);
 
   // Format date utility
   const formatDate = useCallback((dateStr: string | null) => {
@@ -106,6 +110,7 @@ function NgoDashboard() {
 
       if (ngoError || !ngoProfile) {
         setHasNgoProfile(false);
+        setNgoProfile(null);
         setRequests({ eventRegistrations: [], ngoEnrollments: [], confirmedVolunteers: [] });
         setEvents([]);
         setNgoId(null);
@@ -114,6 +119,7 @@ function NgoDashboard() {
       }
 
       setHasNgoProfile(true);
+      setNgoProfile(ngoProfile as NGOProfile);
       setNgoId(ngoProfile.id);
 
       // 1) fetch events
@@ -225,6 +231,7 @@ function NgoDashboard() {
   // Memoize dashboard tabs (avoid recreating functions/arrays every render)
   const dashboardTabs = useMemo(() => ([
     { key: 'events', icon: Calendar, label: `My Events (${events.length})` },
+    { key: 'profile', icon: User, label: 'Organization Profile' },
     { key: 'myvolunteers', icon: Users, label: `My Volunteers (${requests.confirmedVolunteers.length})` },
     { key: 'registrations', icon: Check, label: `Event Applications (${requests.eventRegistrations.length})` },
     { key: 'volunteers', icon: Users, label: `Volunteer Applications (${requests.ngoEnrollments.length})` },
@@ -319,10 +326,19 @@ function NgoDashboard() {
   if (!hasNgoProfile) {
     return (
       <RequireAuth role="ngo">
-        <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-          <h1 className="text-3xl font-bold mb-4">NGO Dashboard</h1>
-          <div className="bg-rose-50 border border-rose-200 rounded-lg p-6 text-rose-800">
-            You don't have an NGO profile yet. Create one to access the dashboard.
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold mb-4">Welcome to NGO Dashboard</h1>
+            <p className="text-muted-foreground">
+              Create your organization profile to start managing events and connecting with volunteers.
+            </p>
+          </div>
+          
+          <div className="max-w-4xl mx-auto">
+            <NgoProfileForm
+              mode="create"
+              onSuccess={handleProfileSuccess}
+            />
           </div>
         </div>
       </RequireAuth>

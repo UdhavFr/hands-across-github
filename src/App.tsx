@@ -167,6 +167,14 @@ function App() {
                     </RequireAuth>
                   } 
                 />
+                <Route 
+                  path="/settings" 
+                  element={
+                    <RequireAuth>
+                      <SettingsPage />
+                    </RequireAuth>
+                  } 
+                />
               </Routes>
             </main>
             <Footer />
