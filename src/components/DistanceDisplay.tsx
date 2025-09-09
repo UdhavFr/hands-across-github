@@ -132,7 +132,7 @@ export function DistanceDisplay({
               )}
             </>
           )}
-          
+
           <button
             onClick={openInMaps}
             className="text-muted-foreground hover:text-primary transition-colors"

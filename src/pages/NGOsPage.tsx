@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Globe, Users, Heart, Loader2 } from 'lucide-react';
+import { Globe, Users, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { LocationFilter } from '../components/LocationFilter';
@@ -217,11 +217,10 @@ export function NGOsPage() {
                         targetLocation={ngoLocation} 
                         userLocation={userLocation || undefined}
                         showDirection={false}
-                        compact={true}
+                        className="text-gray-600"
                       />
                     ) : (
                       <div className="flex items-center text-gray-500">
-                        <Heart className="h-4 w-4 mr-2" />
                         <span className="text-sm">Location not specified</span>
                       </div>
                     )}
@@ -237,11 +236,6 @@ export function NGOsPage() {
                         <span>Visit Website</span>
                       </a>
                     )}
-                    
-                    <div className="flex items-center text-gray-500">
-                      <Heart className="h-5 w-5 mr-2" />
-                      <span>{ngo.cause_areas.join(', ')}</span>
-                    </div>
                   </div>
                   
                   <button
