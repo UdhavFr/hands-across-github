@@ -33,6 +33,7 @@ export type CertificateNGO = { name: string; logo_url?: string };
 
 interface CertificateGeneratorUIProps {
   onConfirmPlacement?: (payload: CertificatePayload) => void;
+  onClose?: () => void;
   event?: CertificateEvent;
   participants?: CertificateParticipant[];
   ngo?: CertificateNGO;
@@ -40,7 +41,7 @@ interface CertificateGeneratorUIProps {
 
 type Step = 'template-selection' | 'placement' | 'preview';
 
-function CertificateGeneratorUI({ participants, onClose }: CertificateGeneratorUIProps)
+export default function CertificateGeneratorUI({ participants, event, ngo, onConfirmPlacement }: CertificateGeneratorUIProps) {
   // Bulk generation state
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState<BulkGenerationProgress | null>(null);

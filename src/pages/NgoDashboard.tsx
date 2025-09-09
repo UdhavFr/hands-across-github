@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, Suspense, lazy } from 'react';
 import {
-  Loader2, Users, Calendar, Check, X, ChevronDown, ChevronUp, MapPin, Clock, UserMinus, TrendingUp
+  Loader2, Users, Calendar, Check, X, ChevronDown, ChevronUp, MapPin, Clock, UserMinus, TrendingUp, User as UserIcon
 } from 'lucide-react';
 import { Clipboard as ClipboardIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -12,7 +12,6 @@ import { TopVolunteersTable } from '../components/TopVolunteersTable';
 import { EventMetricsTable } from '../components/EventMetricsTable';
 import { RealtimeStatus } from '../components/RealtimeStatus';
 import { NgoProfileForm } from '../components/NgoProfileForm';
-import type { NGOProfile } from '../types';
 
 // Loading spinner for lazy-loaded components
 const ComponentLoader = () => (
@@ -74,14 +73,12 @@ function NgoDashboard() {
     }[];
   }>>([]);
 
-  const [currentTab, setCurrentTab] = useState<'events' | 'registrations' | 'volunteers' | 'myvolunteers' | 'certificates' | 'analytics'>('events');
+  const [currentTab, setCurrentTab] = useState<'events' | 'registrations' | 'volunteers' | 'myvolunteers' | 'certificates' | 'analytics' | 'profile'>('events');
   const [hasNgoProfile, setHasNgoProfile] = useState(false);
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
   const [removingParticipant, setRemovingParticipant] = useState<string | null>(null);
   const [ngoId, setNgoId] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
-  const [ngoProfile, setNgoProfile] = useState<NGOProfile | null>(null);
-  const [showProfileForm, setShowProfileForm] = useState(false);
 
   // Format date utility
   const formatDate = useCallback((dateStr: string | null) => {
@@ -110,7 +107,6 @@ function NgoDashboard() {
 
       if (ngoError || !ngoProfile) {
         setHasNgoProfile(false);
-        setNgoProfile(null);
         setRequests({ eventRegistrations: [], ngoEnrollments: [], confirmedVolunteers: [] });
         setEvents([]);
         setNgoId(null);
@@ -119,7 +115,6 @@ function NgoDashboard() {
       }
 
       setHasNgoProfile(true);
-      setNgoProfile(ngoProfile as NGOProfile);
       setNgoId(ngoProfile.id);
 
       // 1) fetch events
@@ -217,6 +212,14 @@ function NgoDashboard() {
     }
   }, []);
 
+  // Handle profile creation success
+  const handleProfileSuccess = useCallback(() => {
+    toast.success('NGO profile created successfully!');
+    setCurrentTab('profile');
+    // Refetch data to update hasNgoProfile state
+    fetchData();
+  }, [fetchData]);
+
   // Initialize selectedEvent when events load or when selectedEvent is missing from events
   useEffect(() => {
     if (events.length === 0) {
@@ -231,7 +234,7 @@ function NgoDashboard() {
   // Memoize dashboard tabs (avoid recreating functions/arrays every render)
   const dashboardTabs = useMemo(() => ([
     { key: 'events', icon: Calendar, label: `My Events (${events.length})` },
-    { key: 'profile', icon: User, label: 'Organization Profile' },
+    { key: 'profile', icon: UserIcon, label: 'Organization Profile' },
     { key: 'myvolunteers', icon: Users, label: `My Volunteers (${requests.confirmedVolunteers.length})` },
     { key: 'registrations', icon: Check, label: `Event Applications (${requests.eventRegistrations.length})` },
     { key: 'volunteers', icon: Users, label: `Volunteer Applications (${requests.ngoEnrollments.length})` },

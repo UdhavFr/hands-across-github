@@ -64,7 +64,7 @@ export function ImageUpload({
   const handleRemoveImage = async () => {
     if (!currentImageUrl) return;
 
-    const success = await deleteImage(currentImageUrl, userId);
+    const success = await deleteImage(currentImageUrl);
     if (success) {
       onImageUpdate(null);
     }

@@ -119,7 +119,7 @@ export function CauseAreasInput({
           {inputValue && (
             <button
               type="button"
-              onClick={addCauseArea}
+              onClick={() => addCauseArea()}
               className="p-2 text-primary hover:bg-primary/10 rounded-r-md transition-colors"
             >
               <Plus className="h-4 w-4" />

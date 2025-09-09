@@ -90,7 +90,7 @@ export function useImageUpload(options: ImageUploadOptions) {
     }
   }, [bucket, folder, validateFile, onProgress]);
 
-  const deleteImage = useCallback(async (imageUrl: string, userId: string): Promise<boolean> => {
+  const deleteImage = useCallback(async (imageUrl: string): Promise<boolean> => {
     try {
       // Extract file path from URL
       const urlParts = imageUrl.split('/');
