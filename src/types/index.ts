@@ -48,11 +48,22 @@ export interface EventCardProps {
 
 export interface NGOProfile {
   id: string;
+  user_id: string;
   name: string;
   description: string;
-  logo_url?: string;
-  website?: string;
+  logo_url?: string | null;
+  website?: string | null;
   cause_areas: string[];
-  user_id: string;
-  created_at: string;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  postal_code?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  service_radius_km?: number;
+  location_verified?: boolean;
+  status?: string;
+  created_at?: string | null;
+  updated_at?: string | null;
 }

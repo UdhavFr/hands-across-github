@@ -12,6 +12,7 @@ import { TopVolunteersTable } from '../components/TopVolunteersTable';
 import { EventMetricsTable } from '../components/EventMetricsTable';
 import { RealtimeStatus } from '../components/RealtimeStatus';
 import { NgoProfileForm } from '../components/NgoProfileForm';
+import { ProfileTab } from '../components/ProfileTab';
 
 // Loading spinner for lazy-loaded components
 const ComponentLoader = () => (
@@ -603,6 +604,10 @@ function NgoDashboard() {
               </div>
             </div>
           </div>
+        )}
+
+        {currentTab === 'profile' && (
+          <ProfileTab ngoId={ngoId} onProfileUpdate={() => fetchData()} />
         )}
       </div>
     </RequireAuth>
