@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { LocationFilter } from '../components/LocationFilter';
 import { useLocation } from '../hooks/useLocation';
-import type { LocationFilterData } from '../types/location';
+import type { LocationFilterData, LocationData } from '../types/location';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '../lib/supabase';

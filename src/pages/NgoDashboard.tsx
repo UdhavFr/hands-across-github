@@ -1,6 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
-import { BulkCertificateGenerator } from '../components/BulkCertificateGenerator';
-import { CertificateGeneratorUI } from '../components/CertificateGeneratorUI';
+import { useEffect, useState, useCallback, useMemo, Suspense, lazy } from 'react';
 import {
   Loader2, Users, Calendar, Check, X, ChevronDown, ChevronUp, MapPin, Clock, UserMinus, TrendingUp
 } from 'lucide-react';
@@ -9,13 +7,24 @@ import { supabase } from '../lib/supabase';
 import { Tables } from '../types/supabase';
 import { toast } from 'react-hot-toast';
 import { RequireAuth } from '../components/RequireAuth';
-import { NgoAnalytics } from '../components/NgoAnalytics';
-import { VolunteerStatusDonut } from '../components/VolunteerStatusDonut';
-import { EventParticipationBarChart } from '../components/EventCategoryBarChart';
 import { ActivityFeed } from '../components/AvtivityFeed';
 import { TopVolunteersTable } from '../components/TopVolunteersTable';
 import { EventMetricsTable } from '../components/EventMetricsTable';
 import { RealtimeStatus } from '../components/RealtimeStatus';
+
+// Loading spinner for lazy-loaded components
+const ComponentLoader = () => (
+  <div className="flex items-center justify-center p-8">
+    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-rose-600"></div>
+  </div>
+);
+
+// Lazy load heavy components
+const CertificateGeneratorUI = lazy(() => import('../components/CertificateGeneratorUI'));
+const BulkCertificateGenerator = lazy(() => import('../components/BulkCertificateGenerator'));
+const NgoAnalytics = lazy(() => import('../components/NgoAnalytics'));
+const VolunteerStatusDonut = lazy(() => import('../components/VolunteerStatusDonut'));
+const EventParticipationBarChart = lazy(() => import('../components/EventCategoryBarChart'));
 
 // Types for joined results
 type EventRegistrationWithDetails = Tables<'event_registrations'> & {
@@ -29,7 +38,7 @@ type NgoEnrollmentWithDetails = Tables<'ngo_enrollments'> & {
   users?: { id: string; full_name: string; email: string | null; };
 };
 
-export function NgoDashboard() {
+function NgoDashboard() {
   // State
   const [showBulkGenerator, setShowBulkGenerator] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
@@ -363,24 +372,26 @@ export function NgoDashboard() {
             </div>
 
             {selectedEvent && (
-              <CertificateGeneratorUI
-                event={selectedEvent}
-                participants={(selectedEvent.participants || []).map((p: any) => ({
-                  id: p.id,
-                  name: p.full_name,
-                  email: p.email ?? ''
-                }))}
-                ngo={hasNgoProfile ? { name: ngoId ?? '' } : undefined}
-                onConfirmPlacement={(config) => {
-                  setTemplateConfig({
-                    backdropDataUrl: config.backdropDataUrl,
-                    nameBoxPx: config.nameBoxPx,
-                    nameBoxMm: config.nameBoxMm,
-                    canvasPxSize: config.canvasPxSize
-                  });
-                  setShowBulkGenerator(true);
-                }}
-              />
+              <Suspense fallback={<ComponentLoader />}>
+                <CertificateGeneratorUI
+                  event={selectedEvent}
+                  participants={(selectedEvent.participants || []).map((p: any) => ({
+                    id: p.id,
+                    name: p.full_name,
+                    email: p.email ?? ''
+                  }))}
+                  ngo={hasNgoProfile ? { name: ngoId ?? '' } : undefined}
+                  onConfirmPlacement={(config) => {
+                    setTemplateConfig({
+                      backdropDataUrl: config.backdropDataUrl,
+                      nameBoxPx: config.nameBoxPx,
+                      nameBoxMm: config.nameBoxMm,
+                      canvasPxSize: config.canvasPxSize
+                    });
+                    setShowBulkGenerator(true);
+                  }}
+                />
+              </Suspense>
             )}
           </div>
         )}
@@ -449,13 +460,15 @@ export function NgoDashboard() {
         {showBulkGenerator && selectedEvent && templateConfig && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 max-w-4xl max-h-[90vh] overflow-auto">
-              <BulkCertificateGenerator
-                event={selectedEvent}
-                ngo={{ name: 'NGO' }}
-                participants={selectedEvent.participants || []}
-                template={templateConfig}
-                onClose={() => setShowBulkGenerator(false)}
-              />
+              <Suspense fallback={<ComponentLoader />}>
+                <BulkCertificateGenerator
+                  event={selectedEvent}
+                  ngo={{ name: 'NGO' }}
+                  participants={selectedEvent.participants || []}
+                  template={templateConfig}
+                  onClose={() => setShowBulkGenerator(false)}
+                />
+              </Suspense>
             </div>
           </div>
         )}
@@ -551,15 +564,21 @@ export function NgoDashboard() {
 
         {currentTab === 'analytics' && ngoId && (
           <div className="space-y-6">
-            <NgoAnalytics ngoId={ngoId} key={`analytics-${lastUpdate}`} />
+            <Suspense fallback={<ComponentLoader />}>
+              <NgoAnalytics ngoId={ngoId} key={`analytics-${lastUpdate}`} />
+            </Suspense>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-6">
                 <EventMetricsTable ngoId={ngoId} key={`events-table-${lastUpdate}`} />
-                <EventParticipationBarChart ngoId={ngoId} key={`chart-${lastUpdate}`} />
+                <Suspense fallback={<ComponentLoader />}>
+                  <EventParticipationBarChart ngoId={ngoId} key={`chart-${lastUpdate}`} />
+                </Suspense>
               </div>
               <div className="space-y-6">
-                <VolunteerStatusDonut ngoId={ngoId} key={`donut-${lastUpdate}`} />
+                <Suspense fallback={<ComponentLoader />}>
+                  <VolunteerStatusDonut ngoId={ngoId} key={`donut-${lastUpdate}`} />
+                </Suspense>
                 <ActivityFeed ngoId={ngoId} key={`feed-${lastUpdate}`} />
                 <TopVolunteersTable ngoId={ngoId} key={`volunteers-${lastUpdate}`} />
               </div>
@@ -570,3 +589,5 @@ export function NgoDashboard() {
     </RequireAuth>
   );
 }
+
+export default NgoDashboard;

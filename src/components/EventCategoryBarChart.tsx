@@ -19,7 +19,7 @@ type EventItem = {
   slots_available: number | null;
 };
 
-export function EventParticipationBarChart({ ngoId }: { ngoId: string }) {
+function EventParticipationBarChart({ ngoId }: { ngoId: string }) {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [participations, setParticipations] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
@@ -153,3 +153,5 @@ export function EventParticipationBarChart({ ngoId }: { ngoId: string }) {
     </div>
   );
 }
+
+export default EventParticipationBarChart;

@@ -17,7 +17,7 @@ type VolunteerStatusCounts = {
   past: number;
 };
 
-export function VolunteerStatusDonut({ ngoId }: { ngoId: string }) {
+function VolunteerStatusDonut({ ngoId }: { ngoId: string }) {
   const [counts, setCounts] = useState<VolunteerStatusCounts>({
     active: 0,
     pending: 0,
@@ -122,3 +122,5 @@ export function VolunteerStatusDonut({ ngoId }: { ngoId: string }) {
     </div>
   );
 }
+
+export default VolunteerStatusDonut;

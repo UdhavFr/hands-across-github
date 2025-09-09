@@ -40,7 +40,7 @@ interface CertificateGeneratorUIProps {
 
 type Step = 'template-selection' | 'placement' | 'preview';
 
-export function CertificateGeneratorUI({ onConfirmPlacement, event, participants, ngo }: CertificateGeneratorUIProps) {
+function CertificateGeneratorUI({ participants, onClose }: CertificateGeneratorUIProps)
   // Bulk generation state
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState<BulkGenerationProgress | null>(null);

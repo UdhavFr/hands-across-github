@@ -22,7 +22,7 @@ interface BulkCertificateGeneratorProps {
   onClose: () => void;
 }
 
-export function BulkCertificateGenerator({ event, ngo, participants: initialParticipants, template, onClose }: BulkCertificateGeneratorProps) {
+function BulkCertificateGenerator({ event, ngo, participants: initialParticipants, template, onClose }: BulkCertificateGeneratorProps) {
   const [participants] = useState<Participant[]>(initialParticipants || []);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState<BulkGenerationProgress | null>(null);
@@ -248,3 +248,5 @@ export function BulkCertificateGenerator({ event, ngo, participants: initialPart
     </div>
   );
 }
+
+export default BulkCertificateGenerator;
