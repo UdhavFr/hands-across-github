@@ -356,16 +356,38 @@ function NgoDashboard() {
           <RealtimeStatus />
         </div>
 
-        <div className="flex border-b mb-6 space-x-4">
-          {dashboardTabs.map(({ key, icon: Icon, label }) => (
-            <button
-              key={key}
-              className={`px-4 py-2 font-medium ${currentTab === key ? 'border-b-2 border-rose-600 text-rose-600' : 'text-gray-500'}`}
-              onClick={() => setCurrentTab(key as any)}
-            >
-              {Icon ? <Icon className="inline mr-2" /> : null} {label}
-            </button>
-          ))}
+        <div className="border-b mb-6 overflow-hidden">
+          <div className="flex overflow-x-auto scrollbar-hide space-x-1 sm:space-x-2 pb-px">
+            {dashboardTabs.map(({ key, icon: Icon, label }) => {
+              // Create mobile-friendly abbreviated labels
+              const mobileLabel = label
+                .replace('My Events', 'Events')
+                .replace('Organization Profile', 'Profile')
+                .replace('My Volunteers', 'Volunteers')
+                .replace('Event Applications', 'Event Apps')
+                .replace('Volunteer Applications', 'Vol Apps');
+              
+              return (
+                <button
+                  key={key}
+                  className={`
+                    flex-shrink-0 flex items-center px-3 sm:px-4 py-2 
+                    text-xs sm:text-sm font-medium transition-colors
+                    min-w-[80px] sm:min-w-[120px] justify-center
+                    ${currentTab === key 
+                      ? 'border-b-2 border-primary text-primary' 
+                      : 'text-muted-foreground hover:text-foreground'
+                    }
+                  `}
+                  onClick={() => setCurrentTab(key as any)}
+                >
+                  {Icon && <Icon className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />}
+                  <span className="hidden sm:inline whitespace-nowrap">{label}</span>
+                  <span className="sm:hidden whitespace-nowrap">{mobileLabel}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {currentTab === 'certificates' && (
