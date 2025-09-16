@@ -26,6 +26,7 @@ const BulkCertificateGenerator = lazy(() => import('../components/BulkCertificat
 const NgoAnalytics = lazy(() => import('../components/NgoAnalytics'));
 const VolunteerStatusDonut = lazy(() => import('../components/VolunteerStatusDonut'));
 const EventParticipationBarChart = lazy(() => import('../components/EventCategoryBarChart'));
+const ProfileTab = lazy(() => import('../components/ProfileTab'));
 
 // Types for joined results
 type EventRegistrationWithDetails = Tables<'event_registrations'> & {
@@ -601,6 +602,12 @@ function NgoDashboard() {
               ))
             )}
           </div>
+        )}
+
+        {currentTab === 'profile' && ngoId && (
+          <Suspense fallback={<ComponentLoader />}>
+            <ProfileTab ngoId={ngoId} />
+          </Suspense>
         )}
 
         {currentTab === 'analytics' && ngoId && (
