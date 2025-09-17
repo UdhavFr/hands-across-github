@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, Suspense, lazy } from 'react';
 import {
-  Loader2, Users, Calendar, Check, X, ChevronDown, ChevronUp, MapPin, Clock, UserMinus, TrendingUp, User as UserIcon
+  Loader2, Users, Calendar, Check, X, ChevronDown, ChevronUp, MapPin, Clock, UserMinus, TrendingUp, User as UserIcon, Edit3
 } from 'lucide-react';
 import { Clipboard as ClipboardIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -12,6 +12,7 @@ import { TopVolunteersTable } from '../components/TopVolunteersTable';
 import { EventMetricsTable } from '../components/EventMetricsTable';
 import { RealtimeStatus } from '../components/RealtimeStatus';
 import { NgoProfileForm } from '../components/NgoProfileForm';
+import { EventForm } from '../components/EventForm';
 
 // Loading spinner for lazy-loaded components
 const ComponentLoader = () => (
@@ -80,6 +81,7 @@ function NgoDashboard() {
   const [removingParticipant, setRemovingParticipant] = useState<string | null>(null);
   const [ngoId, setNgoId] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
+  const [showEventForm, setShowEventForm] = useState<{ mode: 'create' | 'edit'; event: any } | null>(null);
 
   // Format date utility
   const formatDate = useCallback((dateStr: string | null) => {
@@ -440,30 +442,56 @@ function NgoDashboard() {
 
         {currentTab === 'events' && (
           <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold">My Events</h2>
+              <button
+                onClick={() => setShowEventForm({ mode: 'create', event: null })}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md transition-colors"
+              >
+                <Calendar className="h-4 w-4" />
+                Create Event
+              </button>
+            </div>
+            
             {events.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg">
                 <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-500">No events yet</p>
+                <p className="text-sm text-gray-400 mt-2">Create your first event to get started</p>
               </div>
             ) : (
               events.map(event => (
                 <div key={event.id} className="bg-white rounded-lg shadow-sm border">
-                  <div onClick={() => toggleEventExpansion(event.id)} className="p-4 cursor-pointer hover:bg-gray-50">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <h3 className="text-lg font-semibold">{event.title}</h3>
-                        <div className="text-gray-600 flex items-center mt-1 text-sm">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {new Date(event.date).toLocaleDateString()}
+                    <div onClick={() => toggleEventExpansion(event.id)} className="p-4 cursor-pointer hover:bg-gray-50">
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start mb-2">
+                            <h3 className="text-lg font-semibold">{event.title}</h3>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShowEventForm({ mode: 'edit', event });
+                                }}
+                                className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                                title="Edit Event"
+                              >
+                                <Edit3 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="text-gray-600 flex items-center mt-1 text-sm">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {new Date(event.date).toLocaleDateString()}
+                          </div>
+                          <div className="text-gray-600 flex items-center text-sm">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            {event.location}
+                          </div>
                         </div>
-                        <div className="text-gray-600 flex items-center text-sm">
-                          <MapPin className="h-3 w-3 mr-1" />
-                          {event.location}
-                        </div>
+                        {expandedEvents.has(event.id) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                       </div>
-                      {expandedEvents.has(event.id) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </div>
-                  </div>
 
                   {expandedEvents.has(event.id) && (
                     <div className="bg-gray-50 p-4 border-t">
@@ -630,6 +658,26 @@ function NgoDashboard() {
                 <ActivityFeed ngoId={ngoId} key={`feed-${lastUpdate}`} />
                 <TopVolunteersTable ngoId={ngoId} key={`volunteers-${lastUpdate}`} />
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Event Form Modal */}
+        {showEventForm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-4xl max-h-[90vh] overflow-auto w-full mx-4">
+              <EventForm
+                mode={showEventForm.mode}
+                existingEvent={showEventForm.event}
+                ngoId={ngoId!}
+                userId={ngoId!}
+                onSuccess={() => {
+                  toast.success(`Event ${showEventForm.mode === 'create' ? 'created' : 'updated'} successfully!`);
+                  setShowEventForm(null);
+                  fetchData();
+                }}
+                onCancel={() => setShowEventForm(null)}
+              />
             </div>
           </div>
         )}
