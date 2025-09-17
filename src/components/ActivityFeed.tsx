@@ -14,12 +14,41 @@ interface ActivityItem {
   ngo_id: string;
 }
 
+interface Enrollment {
+  id: string;
+  created_at: string | null;
+  updated_at: string | null;
+  status: string;
+  ngo_id: string;
+  users: {
+    id: string;
+    full_name: string;
+    avatar_url: string | null;
+  };
+}
+
+interface Registration {
+  id: string;
+  created_at: string;
+  status: string;
+  users: {
+    id: string;
+    full_name: string;
+    avatar_url: string | null;
+  };
+  events: {
+    id: string;
+    title: string;
+    ngo_id: string;
+  };
+}
+
 export function ActivityFeed({ ngoId }: { ngoId: string }) {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Transform db data to ActivityItem - memoized for stable reference
-  const createActivityFromEnrollment = useCallback((enrollment: any, type: 'approved' | 'applied'): ActivityItem => {
+  const createActivityFromEnrollment = useCallback((enrollment: Enrollment, type: 'approved' | 'applied'): ActivityItem => {
     return {
       id: `enrollment-${enrollment.id}`,
       type: type === 'approved' ? 'volunteer_approved' : 'event_registration',
@@ -28,8 +57,8 @@ export function ActivityFeed({ ngoId }: { ngoId: string }) {
         ? `${enrollment.users?.full_name || 'Someone'} joined as a volunteer`
         : `${enrollment.users?.full_name || 'Someone'} applied to volunteer`,
       user_name: enrollment.users?.full_name || 'Unknown User',
-      user_avatar: enrollment.users?.avatar_url,
-      timestamp: enrollment.created_at || enrollment.updated_at,
+      user_avatar: enrollment.users?.avatar_url || undefined,
+      timestamp: enrollment.created_at || enrollment.updated_at || new Date().toISOString(),
       ngo_id: enrollment.ngo_id,
     };
   }, []);

@@ -68,15 +68,15 @@ export function NGOsPage() {
       // Filter by radius if using current location
       if (locationFilters.radius < 1000) {
         filtered = filtered.filter(ngo => {
-          if (!(ngo as any).latitude || !(ngo as any).longitude) return false;
-          
+          if (!ngo.latitude || !ngo.longitude) return false;
+
           const distance = calculateDistance(
             userLocation.latitude,
             userLocation.longitude,
-            Number((ngo as any).latitude),
-            Number((ngo as any).longitude)
+            Number(ngo.latitude),
+            Number(ngo.longitude)
           );
-          
+
           return distance <= locationFilters.radius;
         });
       }
@@ -84,32 +84,32 @@ export function NGOsPage() {
 
     // Filter by selected cities
     if (locationFilters.cities.length > 0) {
-      filtered = filtered.filter(ngo => 
-        locationFilters.cities.includes((ngo as any).city || 'Unknown')
+      filtered = filtered.filter(ngo =>
+        locationFilters.cities.includes(ngo.city || 'Unknown')
       );
     }
 
     // Filter by selected states
     if (locationFilters.states.length > 0) {
-      filtered = filtered.filter(ngo => 
-        locationFilters.states.includes((ngo as any).state || 'Unknown')
+      filtered = filtered.filter(ngo =>
+        locationFilters.states.includes(ngo.state || 'Unknown')
       );
     }
 
     // Sort by distance if requested
     if (locationFilters.sortByDistance && userLocation) {
       filtered.sort((a, b) => {
-        const aLat = Number((a as any).latitude);
-        const aLng = Number((a as any).longitude);
-        const bLat = Number((b as any).latitude);
-        const bLng = Number((b as any).longitude);
-        
+        const aLat = Number(a.latitude);
+        const aLng = Number(a.longitude);
+        const bLat = Number(b.latitude);
+        const bLng = Number(b.longitude);
+
         if (!aLat || !aLng) return 1;
         if (!bLat || !bLng) return -1;
-        
+
         const distanceA = calculateDistance(userLocation.latitude, userLocation.longitude, aLat, aLng);
         const distanceB = calculateDistance(userLocation.latitude, userLocation.longitude, bLat, bLng);
-        
+
         return distanceA - distanceB;
       });
     }
@@ -187,13 +187,13 @@ export function NGOsPage() {
 
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {filteredNgos.map((ngo) => {
-            const ngoLocation: LocationData | null = (ngo as any).latitude && (ngo as any).longitude ? {
-              address: (ngo as any).address || 'Unknown',
-              city: (ngo as any).city || 'Unknown',
-              state: (ngo as any).state || 'Unknown',
+            const ngoLocation: LocationData | null = ngo.latitude && ngo.longitude ? {
+              address: ngo.address || 'Unknown',
+              city: ngo.city || 'Unknown',
+              state: ngo.state || 'Unknown',
               country: 'India',
-              latitude: Number((ngo as any).latitude),
-              longitude: Number((ngo as any).longitude)
+              latitude: Number(ngo.latitude),
+              longitude: Number(ngo.longitude)
             } : null;
 
             return (

@@ -23,13 +23,13 @@ export function EventCard({
   const { location: userLocation } = useLocation();
 
   // Create location data from event if coordinates are available
-  const eventLocation: LocationData | null = (event as any).latitude && (event as any).longitude ? {
-    address: (event as any).address || event.location,
-    city: (event as any).city || event.location.split(',')[0] || 'Unknown',
-    state: 'Unknown',
+  const eventLocation: LocationData | null = event.latitude && event.longitude ? {
+    address: event.address || event.location,
+    city: event.city || event.location.split(',')[0] || 'Unknown',
+    state: event.state || 'Unknown',
     country: 'India',
-    latitude: Number((event as any).latitude),
-    longitude: Number((event as any).longitude)
+    latitude: Number(event.latitude),
+    longitude: Number(event.longitude)
   } : null;
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">

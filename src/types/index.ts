@@ -27,6 +27,11 @@ export interface Event {
   slots_available: number;
   created_at: string | null;
   updated_at: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
 }
 
 export interface EventRegistration {
@@ -55,4 +60,9 @@ export interface NGOProfile {
   cause_areas: string[];
   user_id: string;
   created_at: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
 }

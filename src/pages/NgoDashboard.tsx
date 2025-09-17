@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase';
 import { Tables } from '../types/supabase';
 import { toast } from 'react-hot-toast';
 import { RequireAuth } from '../components/RequireAuth';
-import { ActivityFeed } from '../components/AvtivityFeed';
+import { ActivityFeed } from '../components/ActivityFeed';
 import { TopVolunteersTable } from '../components/TopVolunteersTable';
 import { EventMetricsTable } from '../components/EventMetricsTable';
 import { RealtimeStatus } from '../components/RealtimeStatus';

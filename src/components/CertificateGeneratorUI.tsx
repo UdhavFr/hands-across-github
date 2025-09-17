@@ -33,7 +33,6 @@ export type CertificateNGO = { name: string; logo_url?: string };
 
 interface CertificateGeneratorUIProps {
   onConfirmPlacement?: (payload: CertificatePayload) => void;
-  onClose?: () => void;
   event?: CertificateEvent;
   participants?: CertificateParticipant[];
   ngo?: CertificateNGO;
@@ -144,21 +143,21 @@ export default function CertificateGeneratorUI({ participants, event, ngo, onCon
         setProgress(null);
         setIsBulk(false);
         alert('Bulk certificate ZIP downloaded!');
-      } catch (err: any) {
+      } catch (err: unknown) {
         setIsGenerating(false);
         setProgress(null);
         setIsBulk(false);
-        if (err?.message?.includes('cancel')) {
+        if (err instanceof Error && err.message?.includes('cancel')) {
           alert('Bulk generation cancelled.');
         } else {
-          alert('Error during bulk generation: ' + err);
+          alert('Error during bulk generation: ' + String(err));
         }
       }
       return;
     }
 
     // Single participant
-    let participant = selectedParticipant || participants[0];
+    const participant = selectedParticipant || participants[0];
     // Patch: ensure email is string
     const safeParticipant = { ...participant, email: participant.email ?? '' };
 

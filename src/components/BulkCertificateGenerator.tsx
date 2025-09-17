@@ -1,24 +1,14 @@
 import { useState, useCallback } from 'react';
 import { Users, AlertCircle, CheckCircle, X, Play, Pause } from 'lucide-react';
 import { generateBulkCertificates, validateParticipants, getRecommendedBatchSize, type BulkGenerationProgress } from '../utils/files';
-import { type EventData, type NgoData, type Participant } from '../utils/certificate';
+import { type EventData, type NgoData, type Participant, type TemplateOptions } from '../utils/certificate';
 
 
 interface BulkCertificateGeneratorProps {
   event: EventData;
   ngo: NgoData;
   participants: Participant[];
-  template: {
-    backdropDataUrl: string;
-    nameBoxPx: { x: number; y: number; width: number; height: number };
-    nameBoxMm?: { xMm: number; yMm: number; widthMm: number; heightMm: number };
-    canvasPxSize: { widthPx: number; heightPx: number };
-    fontFamily?: string;
-    fontSize?: number;
-    textColor?: string;
-    textAlign?: 'left' | 'center' | 'right';
-    fontWeight?: 'normal' | 'bold';
-  };
+  template: TemplateOptions;
   onClose: () => void;
 }
 

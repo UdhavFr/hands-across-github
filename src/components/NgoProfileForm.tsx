@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Save, Loader2, Building, FileText, Globe, MapPin, Tag } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ImageUpload } from './ImageUpload';
 import { LocationInput } from './LocationInput';
 import { CauseAreasInput } from './CauseAreasInput';
+import { useFormValidation } from '../hooks/useFormValidation';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 import type { NGOProfile } from '../types';
 import type { LocationData } from '../types/location';
 import toast from 'react-hot-toast';
@@ -31,6 +33,43 @@ interface FormData {
   service_radius_km: number;
 }
 
+interface ProfileCompletionScore {
+  score: number;
+  maxScore: number;
+  percentage: number;
+  missingFields: string[];
+  suggestions: string[];
+}
+
+// Validation schema for NGO profile
+const validationSchema = {
+  name: {
+    required: true,
+    minLength: 3,
+    maxLength: 100,
+    pattern: /^[a-zA-Z0-9\s\-_.,()&]+$/,
+  },
+  description: {
+    required: true,
+    minLength: 50,
+    maxLength: 2000,
+  },
+  website: {
+    required: false,
+    pattern: /^https?:\/\/.+\..+/,
+  },
+  cause_areas: {
+    required: true,
+    minItems: 1,
+  },
+  service_radius_km: {
+    required: true,
+    min: 1,
+    max: 1000,
+    type: 'number',
+  },
+};
+
 export function NgoProfileForm({ mode, existingProfile, onSuccess, onCancel }: NgoProfileFormProps) {
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -49,7 +88,16 @@ export function NgoProfileForm({ mode, existingProfile, onSuccess, onCancel }: N
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+
+
+  const {
+    errors: validationErrors,
+    validateField,
+    validateForm,
+    clearErrors,
+    setFieldError,
+  } = useFormValidation(validationSchema);
 
   // Initialize form data for edit mode
   useEffect(() => {
@@ -72,35 +120,81 @@ export function NgoProfileForm({ mode, existingProfile, onSuccess, onCancel }: N
     }
   }, [mode, existingProfile]);
 
-  const validateForm = (): boolean => {
-    const errors: Record<string, string> = {};
+  // Calculate profile completion score
+  const completionScore = useMemo((): ProfileCompletionScore => {
+    const fields = [
+      { key: 'name', label: 'Organization Name', weight: 20, required: true },
+      { key: 'description', label: 'Description', weight: 15, required: true },
+      { key: 'logo_url', label: 'Logo', weight: 10, required: false },
+      { key: 'website', label: 'Website', weight: 10, required: false },
+      { key: 'cause_areas', label: 'Cause Areas', weight: 15, required: true },
+      { key: 'address', label: 'Address', weight: 10, required: false },
+      { key: 'city', label: 'City', weight: 10, required: false },
+      { key: 'state', label: 'State', weight: 5, required: false },
+      { key: 'postal_code', label: 'Postal Code', weight: 5, required: false },
+    ];
 
-    if (!formData.name.trim()) {
-      errors.name = 'Organization name is required';
-    } else if (formData.name.length < 3) {
-      errors.name = 'Organization name must be at least 3 characters';
+    let score = 0;
+    let maxScore = 0;
+    const missingFields: string[] = [];
+    const suggestions: string[] = [];
+
+    fields.forEach(field => {
+      maxScore += field.weight;
+      const value = formData[field.key as keyof FormData];
+      
+      let hasValue = false;
+      if (Array.isArray(value)) {
+        hasValue = value.length > 0;
+      } else if (typeof value === 'string') {
+        hasValue = value.trim().length > 0;
+      } else {
+        hasValue = value !== null && value !== undefined;
+      }
+
+      if (hasValue) {
+        score += field.weight;
+      } else {
+        if (field.required) {
+          missingFields.push(field.label);
+        } else {
+          suggestions.push(`Add ${field.label.toLowerCase()} to improve your profile`);
+        }
+      }
+    });
+
+    const percentage = Math.round((score / maxScore) * 100);
+
+    return {
+      score,
+      maxScore,
+      percentage,
+      missingFields,
+      suggestions,
+    };
+  }, [formData]);
+
+  // Real-time field validation
+  const handleFieldChange = useCallback((field: keyof FormData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Validate field after a short delay
+    setTimeout(() => {
+      validateField(field, value, formData);
+    }, 300);
+  }, [validateField, formData]);
+
+  // Enhanced validation
+  const validateFormData = (): boolean => {
+    const isValid = validateForm(formData);
+
+    // Additional custom validations
+    if (formData.website && !formData.website.startsWith('http')) {
+      setFieldError('website', 'Website URL must start with http:// or https://');
+      return false;
     }
 
-    if (!formData.description.trim()) {
-      errors.description = 'Description is required';
-    } else if (formData.description.length < 50) {
-      errors.description = 'Description must be at least 50 characters';
-    }
-
-    if (formData.website && !isValidUrl(formData.website)) {
-      errors.website = 'Please enter a valid website URL';
-    }
-
-    if (formData.cause_areas.length === 0) {
-      errors.cause_areas = 'Please select at least one cause area';
-    }
-
-    if (formData.service_radius_km < 1 || formData.service_radius_km > 1000) {
-      errors.service_radius_km = 'Service radius must be between 1 and 1000 km';
-    }
-
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+    return isValid;
   };
 
   const isValidUrl = (url: string): boolean => {
