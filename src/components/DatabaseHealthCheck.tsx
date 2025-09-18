@@ -17,6 +17,8 @@ import {
   Copy,
   Eye,
   EyeOff,
+  Shield,
+  Key,
 } from 'lucide-react';
 import {
   MigrationService,

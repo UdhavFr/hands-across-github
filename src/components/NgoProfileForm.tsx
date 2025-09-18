@@ -15,6 +15,7 @@ interface NgoProfileFormProps {
   existingProfile?: NGOProfile | null;
   onSuccess: (profile: NGOProfile) => void;
   onCancel?: () => void;
+  showSuccessToast?: boolean;
 }
 
 interface FormData {
@@ -70,7 +71,7 @@ const validationSchema = {
   },
 };
 
-export function NgoProfileForm({ mode, existingProfile, onSuccess, onCancel }: NgoProfileFormProps) {
+export function NgoProfileForm({ mode, existingProfile, onSuccess, onCancel, showSuccessToast = true }: NgoProfileFormProps) {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     description: '',
@@ -279,7 +280,9 @@ export function NgoProfileForm({ mode, existingProfile, onSuccess, onCancel }: N
 
         if (error) throw error;
         
-        toast.success('NGO profile created successfully!');
+        if (showSuccessToast) {
+          toast.success('NGO profile created successfully!');
+        }
         onSuccess(data as NGOProfile);
       } else {
         if (!existingProfile) {
@@ -295,7 +298,9 @@ export function NgoProfileForm({ mode, existingProfile, onSuccess, onCancel }: N
 
         if (error) throw error;
 
-        toast.success('NGO profile updated successfully!');
+        if (showSuccessToast) {
+          toast.success('NGO profile updated successfully!');
+        }
         onSuccess(data as NGOProfile);
       }
     } catch (error) {
@@ -435,6 +440,7 @@ export function NgoProfileForm({ mode, existingProfile, onSuccess, onCancel }: N
             onChange={handleLocationChange}
             placeholder="Search for your organization's address..."
             showCurrentLocation={true}
+            autoDetectOnMount={false}
             className="mb-4"
           />
           

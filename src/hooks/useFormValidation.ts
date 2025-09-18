@@ -14,7 +14,8 @@ export type ValidationRule<T = any> = {
   minLength?: number;
   maxLength?: number;
   pattern?: RegExp;
-  custom?: (value: T) => string | null;
+  // Allow custom validators to access full form values when needed
+  custom?: (value: T, values?: Record<string, any>) => string | null;
   asyncValidator?: (value: T) => Promise<string | null>;
 };
 
@@ -115,7 +116,7 @@ export function useFormValidation<T extends Record<string, any>>({
 
     // Custom validation
     if (rules.custom) {
-      const customError = rules.custom(value);
+      const customError = rules.custom(value, state.values as unknown as Record<string, any>);
       if (customError) return customError;
     }
 
@@ -385,7 +386,7 @@ export function useFormValidation<T extends Record<string, any>>({
 
       // Custom validation
       if (rules.custom) {
-        const customError = rules.custom(value);
+        const customError = rules.custom(value, dataToValidate as unknown as Record<string, any>);
         if (customError) {
           errors[field as keyof T] = customError;
           hasErrors = true;

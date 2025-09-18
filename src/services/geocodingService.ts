@@ -21,7 +21,7 @@ export class GeocodingService {
     try {
       const encodedAddress = encodeURIComponent(address);
       const response = await fetch(
-        `${this.NOMINATIM_BASE_URL}/search?format=json&q=${encodedAddress}&limit=1&countrycodes=in`
+        `${this.NOMINATIM_BASE_URL}/search?format=json&addressdetails=1&q=${encodedAddress}&limit=1&countrycodes=in`
       );
 
       if (!response.ok) {
@@ -65,7 +65,7 @@ export class GeocodingService {
 
     try {
       const response = await fetch(
-        `${this.NOMINATIM_BASE_URL}/reverse?format=json&lat=${lat}&lon=${lng}`
+        `${this.NOMINATIM_BASE_URL}/reverse?format=json&addressdetails=1&lat=${lat}&lon=${lng}`
       );
 
       if (!response.ok) {
@@ -104,7 +104,7 @@ export class GeocodingService {
 
     try {
       const encodedQuery = encodeURIComponent(query);
-      let url = `${this.NOMINATIM_BASE_URL}/search?format=json&q=${encodedQuery}&limit=5&countrycodes=in`;
+      let url = `${this.NOMINATIM_BASE_URL}/search?format=json&addressdetails=1&q=${encodedQuery}&limit=5&countrycodes=in`;
       
       // Bias results towards a specific location if provided
       if (location) {

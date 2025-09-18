@@ -567,6 +567,198 @@ export class MigrationService {
   }
 
   /**
+   * Tests RLS policies for a table
+   */
+  static async testRLSPolicies(tableName: string, userId?: string): Promise<{
+    canSelect: boolean;
+    canInsert: boolean;
+    canUpdate: boolean;
+    canDelete: boolean;
+    errors: string[];
+    suggestions: string[];
+  }> {
+    const result = {
+      canSelect: false,
+      canInsert: false,
+      canUpdate: false,
+      canDelete: false,
+      errors: [] as string[],
+      suggestions: [] as string[],
+    };
+
+    try {
+      // Test SELECT permission
+      try {
+        const { error: selectError } = await supabase
+          .from(tableName)
+          .select('*')
+          .limit(1);
+        
+        result.canSelect = !selectError;
+        if (selectError) {
+          result.errors.push(`SELECT: ${selectError.message}`);
+        }
+      } catch (error) {
+        result.errors.push(`SELECT: ${error instanceof Error ? error.message : String(error)}`);
+      }
+
+      // Test INSERT permission (with minimal data)
+      if (userId) {
+        try {
+          const testData = this.generateTestData(tableName, userId);
+          const { error: insertError } = await supabase
+            .from(tableName)
+            .insert([testData])
+            .select()
+            .single();
+          
+          result.canInsert = !insertError;
+          if (insertError) {
+            result.errors.push(`INSERT: ${insertError.message}`);
+            
+            // Provide specific suggestions for common RLS issues
+            if (insertError.message.includes('row-level security policy')) {
+              result.suggestions.push(`Enable RLS policy for INSERT on ${tableName} table`);
+              result.suggestions.push(`Ensure user ${userId} has proper permissions`);
+              result.suggestions.push(`Check if user_id column matches authenticated user`);
+            }
+          } else {
+            // Clean up test data
+            await supabase
+              .from(tableName)
+              .delete()
+              .eq('id', testData.id);
+          }
+        } catch (error) {
+          result.errors.push(`INSERT: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      }
+
+      // Generate RLS policy suggestions
+      if (!result.canInsert || !result.canSelect) {
+        result.suggestions.push(`Create RLS policies for ${tableName}:`);
+        result.suggestions.push(`-- Enable RLS\nALTER TABLE ${tableName} ENABLE ROW LEVEL SECURITY;`);
+        
+        if (tableName.includes('ngo_') || tableName === 'events') {
+          result.suggestions.push(`-- Allow NGO owners to manage their data\nCREATE POLICY "${tableName}_owner_policy" ON ${tableName} FOR ALL USING (user_id = auth.uid());`);
+        } else if (tableName.includes('user_')) {
+          result.suggestions.push(`-- Allow users to manage their own data\nCREATE POLICY "${tableName}_user_policy" ON ${tableName} FOR ALL USING (user_id = auth.uid());`);
+        } else {
+          result.suggestions.push(`-- Allow authenticated users\nCREATE POLICY "${tableName}_authenticated_policy" ON ${tableName} FOR ALL USING (auth.role() = 'authenticated');`);
+        }
+      }
+
+    } catch (error) {
+      result.errors.push(`General error: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    return result;
+  }
+
+  /**
+   * Generates test data for RLS testing
+   */
+  private static generateTestData(tableName: string, userId: string): any {
+    const baseData = {
+      id: crypto.randomUUID(),
+      user_id: userId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    switch (tableName) {
+      case 'ngo_profiles':
+        return {
+          ...baseData,
+          name: 'Test NGO',
+          description: 'Test description for RLS testing',
+          cause_areas: ['education'],
+        };
+      case 'events':
+        return {
+          ...baseData,
+          ngo_id: crypto.randomUUID(),
+          title: 'Test Event',
+          description: 'Test event for RLS testing',
+          date: new Date().toISOString(),
+          location: 'Test Location',
+          slots_available: 10,
+        };
+      case 'event_registrations':
+        return {
+          ...baseData,
+          event_id: crypto.randomUUID(),
+          status: 'pending',
+        };
+      case 'ngo_enrollments':
+        return {
+          ...baseData,
+          ngo_id: crypto.randomUUID(),
+          status: 'pending',
+        };
+      case 'user_preferences':
+        return {
+          ...baseData,
+          preferences: { theme: 'light' },
+        };
+      default:
+        return baseData;
+    }
+  }
+
+  /**
+   * Gets comprehensive RLS status for all tables
+   */
+  static async getRLSStatus(userId?: string): Promise<{
+    [tableName: string]: {
+      rlsEnabled: boolean;
+      policies: any[];
+      testResults?: Awaited<ReturnType<typeof MigrationService.testRLSPolicies>>;
+    };
+  }> {
+    const result: any = {};
+
+    for (const tableName of Object.keys(this.EXPECTED_SCHEMAS)) {
+      try {
+        // Check if RLS is enabled (this requires admin access, so we'll catch errors)
+        let rlsEnabled = false;
+        let policies: any[] = [];
+
+        try {
+          const { data: rlsData } = await supabase
+            .from('pg_class')
+            .select('relrowsecurity')
+            .eq('relname', tableName)
+            .single();
+          
+          rlsEnabled = rlsData?.relrowsecurity || false;
+        } catch {
+          // Can't check RLS status, assume it's enabled if we get permission errors
+          rlsEnabled = true;
+        }
+
+        // Test actual permissions
+        const testResults = userId ? await this.testRLSPolicies(tableName, userId) : undefined;
+
+        result[tableName] = {
+          rlsEnabled,
+          policies,
+          testResults,
+        };
+
+      } catch (error) {
+        result[tableName] = {
+          rlsEnabled: false,
+          policies: [],
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * Gets migration status for all tables
    */
   static async getMigrationStatus(): Promise<{

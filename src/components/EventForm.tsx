@@ -33,6 +33,8 @@ interface EventFormProps {
   userId: string;
   onSuccess: (event: Event) => void;
   onCancel?: () => void;
+  showSuccessToast?: boolean;
+  onDeleteSuccess?: () => void;
 }
 
 interface FormData {
@@ -102,7 +104,7 @@ const validationSchema = {
   },
 };
 
-export function EventForm({ mode, existingEvent, ngoId, userId, onSuccess, onCancel }: EventFormProps) {
+export function EventForm({ mode, existingEvent, ngoId, userId, onSuccess, onCancel, showSuccessToast = true, onDeleteSuccess }: EventFormProps) {
   const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
@@ -372,7 +374,9 @@ export function EventForm({ mode, existingEvent, ngoId, userId, onSuccess, onCan
 
         if (error) throw error;
         
-        toast.success('Event created successfully!');
+        if (showSuccessToast) {
+          toast.success('Event created successfully!');
+        }
         onSuccess(data as Event);
       } else {
         if (!existingEvent) {
@@ -388,7 +392,9 @@ export function EventForm({ mode, existingEvent, ngoId, userId, onSuccess, onCan
 
         if (error) throw error;
 
-        toast.success('Event updated successfully!');
+        if (showSuccessToast) {
+          toast.success('Event updated successfully!');
+        }
         onSuccess(data as Event);
       }
     } catch (error) {
@@ -407,6 +413,32 @@ export function EventForm({ mode, existingEvent, ngoId, userId, onSuccess, onCan
     latitude: formData.latitude,
     longitude: formData.longitude,
   } : null;
+
+  const handleDelete = withErrorHandling(async () => {
+    if (mode !== 'edit' || !existingEvent) return;
+    const confirmed = window.confirm('Are you sure you want to delete this event? This action cannot be undone.');
+    if (!confirmed) return;
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', (existingEvent as Event).id);
+
+      if (error) throw error;
+
+      if (showSuccessToast) {
+        toast.success('Event deleted successfully');
+      }
+      onDeleteSuccess?.();
+    } catch (error) {
+      handleError(error instanceof Error ? error : new Error('Failed to delete event'));
+      toast.error(error instanceof Error ? error.message : 'Failed to delete event');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, 'handleDelete');
 
   return (
     <div className="bg-card rounded-lg border border-border p-6">
@@ -609,6 +641,16 @@ export function EventForm({ mode, existingEvent, ngoId, userId, onSuccess, onCan
 
         {/* Action Buttons */}
         <div className="flex gap-4 pt-6 border-t border-border">
+          {mode === 'edit' && existingEvent && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={isSubmitting}
+              className="px-6 py-3 border border-red-200 text-red-700 bg-red-50 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+            >
+              Delete Event
+            </button>
+          )}
           {onCancel && (
             <button
               type="button"

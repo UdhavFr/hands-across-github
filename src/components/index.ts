@@ -87,6 +87,9 @@ export {
 // Dashboard Components
 export { EventsTab } from './EventsTab';
 
+// Diagnostics Components
+export { RLSDiagnostics } from './RLSDiagnostics';
+
 // Services (re-exported for convenience)
 export { GeocodingService } from '../services/geocodingService';
 export { StorageService, StorageUtils } from '../services/storageService';

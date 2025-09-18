@@ -42,7 +42,7 @@ export default function ProfileTab({ ngoId, onProfileUpdate }: ProfileTabProps) 
     setProfile(updatedProfile);
     setIsEditing(false);
     onProfileUpdate?.(updatedProfile);
-    toast.success('Profile updated successfully!');
+    toast.success('Organization profile updated successfully!');
   };
 
   if (loading) {
@@ -79,6 +79,7 @@ export default function ProfileTab({ ngoId, onProfileUpdate }: ProfileTabProps) 
         <NgoProfileForm
           mode="edit"
           existingProfile={profile}
+          showSuccessToast={false}
           onSuccess={handleProfileUpdate}
           onCancel={() => setIsEditing(false)}
         />

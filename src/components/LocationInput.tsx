@@ -11,6 +11,7 @@ interface LocationInputProps {
   onChange: (location: LocationData | null) => void;
   placeholder?: string;
   showCurrentLocation?: boolean;
+  autoDetectOnMount?: boolean;
   required?: boolean;
   className?: string;
   onError?: (error: string) => void;
@@ -34,6 +35,7 @@ export function LocationInput({
   onChange,
   placeholder = "Enter location...",
   showCurrentLocation = true,
+  autoDetectOnMount = true,
   required = false,
   className = "",
   onError,
@@ -50,6 +52,7 @@ export function LocationInput({
     isOnline: navigator.onLine,
     retryCount: 0,
   });
+  const [hasUserEdited, setHasUserEdited] = useState(false);
   
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -194,6 +197,7 @@ export function LocationInput({
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setState(prev => ({ ...prev, inputValue: newValue, error: null }));
+    setHasUserEdited(true);
     
     if (!newValue) {
       onChange(null);
@@ -216,6 +220,7 @@ export function LocationInput({
       error: null,
     }));
     onChange(suggestion.location);
+    setHasUserEdited(true);
     inputRef.current?.blur();
   }, [onChange]);
 
@@ -286,10 +291,10 @@ export function LocationInput({
    * Effect to handle when user location is obtained
    */
   useEffect(() => {
-    if (userLocation && !value && !state.inputValue) {
+    if (autoDetectOnMount && !hasUserEdited && userLocation && !value && !state.inputValue) {
       handleUseCurrentLocation();
     }
-  }, [userLocation, value, state.inputValue, handleUseCurrentLocation]);
+  }, [autoDetectOnMount, hasUserEdited, userLocation, value, state.inputValue, handleUseCurrentLocation]);
 
   /**
    * Handles keyboard navigation

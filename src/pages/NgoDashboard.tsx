@@ -80,6 +80,7 @@ function NgoDashboard() {
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
   const [removingParticipant, setRemovingParticipant] = useState<string | null>(null);
   const [ngoId, setNgoId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
   const [showEventForm, setShowEventForm] = useState<{ mode: 'create' | 'edit'; event: any } | null>(null);
 
@@ -118,6 +119,7 @@ function NgoDashboard() {
       }
 
       setHasNgoProfile(true);
+      setCurrentUserId(user.id);
       setNgoId(ngoProfile.id);
 
       // 1) fetch events
@@ -670,7 +672,13 @@ function NgoDashboard() {
                 mode={showEventForm.mode}
                 existingEvent={showEventForm.event}
                 ngoId={ngoId!}
-                userId={ngoId!}
+                userId={currentUserId!}
+                showSuccessToast={false}
+                onDeleteSuccess={() => {
+                  toast.success('Event deleted successfully');
+                  setShowEventForm(null);
+                  fetchData();
+                }}
                 onSuccess={() => {
                   toast.success(`Event ${showEventForm.mode === 'create' ? 'created' : 'updated'} successfully!`);
                   setShowEventForm(null);

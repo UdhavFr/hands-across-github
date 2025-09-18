@@ -457,7 +457,15 @@ export class ErrorService {
   private static storeErrorLog(errorLog: ErrorLog): void {
     try {
       const logs = this.getErrorLogs();
-      logs.push(errorLog);
+      // Sanitize to avoid circular structures in additionalData
+      const sanitized: ErrorLog = {
+        ...errorLog,
+        context: {
+          ...errorLog.context,
+          additionalData: ErrorUtils.safeSerialize(errorLog.context.additionalData || {}) as Record<string, any>,
+        },
+      };
+      logs.push(sanitized);
       
       // Keep only the most recent errors
       if (logs.length > this.MAX_STORED_ERRORS) {
@@ -560,5 +568,41 @@ export const ErrorUtils = {
     }
     
     throw lastError!;
+  },
+
+  /**
+   * Safely serialize objects by removing circular references and DOM nodes
+   */
+  safeSerialize(input: any, seen: WeakSet<object> = new WeakSet()): any {
+    if (input == null) return input;
+
+    const type = typeof input;
+    if (type === 'string' || type === 'number' || type === 'boolean') return input;
+    if (input instanceof Date) return input.toISOString();
+
+    // Avoid serializing DOM nodes or React synthetic events
+    if (typeof Element !== 'undefined' && input instanceof Element) return '[DOM Element]';
+    if (input?.nativeEvent) return '[SyntheticEvent]';
+
+    if (type === 'object') {
+      if (seen.has(input)) return '[Circular]';
+      seen.add(input);
+
+      if (Array.isArray(input)) {
+        return input.map((item) => ErrorUtils.safeSerialize(item, seen));
+      }
+
+      const output: Record<string, any> = {};
+      for (const [key, value] of Object.entries(input)) {
+        try {
+          output[key] = ErrorUtils.safeSerialize(value as any, seen);
+        } catch {
+          output[key] = '[Unserializable]';
+        }
+      }
+      return output;
+    }
+
+    return String(input);
   },
 };
