@@ -138,7 +138,12 @@ export function EventForm({ mode, existingEvent, ngoId, userId, onSuccess, onCan
     validateForm,
     clearErrors,
     setFieldError,
-  } = useFormValidation(validationSchema);
+  } = useFormValidation({
+    initialValues: formData,
+    validationRules: validationSchema,
+    validateOnChange: true,
+    validateOnBlur: true,
+  });
 
   // Initialize form data for edit mode
   useEffect(() => {

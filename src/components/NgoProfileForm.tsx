@@ -88,16 +88,18 @@ export function NgoProfileForm({ mode, existingProfile, onSuccess, onCancel }: N
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-
-
   const {
     errors: validationErrors,
     validateField,
     validateForm,
     clearErrors,
     setFieldError,
-  } = useFormValidation(validationSchema);
+  } = useFormValidation({
+    initialValues: formData,
+    validationRules: validationSchema,
+    validateOnChange: true,
+    validateOnBlur: true,
+  });
 
   // Initialize form data for edit mode
   useEffect(() => {
@@ -218,6 +220,7 @@ export function NgoProfileForm({ mode, existingProfile, onSuccess, onCancel }: N
         latitude: location.latitude,
         longitude: location.longitude
       }));
+      clearErrors(['address', 'city', 'state']);
     } else {
       setFormData(prev => ({
         ...prev,
@@ -234,7 +237,7 @@ export function NgoProfileForm({ mode, existingProfile, onSuccess, onCancel }: N
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
+    if (!validateForm(formData)) {
       toast.error('Please fix the errors before submitting');
       return;
     }

@@ -63,6 +63,9 @@ export function useFormValidation<T extends Record<string, any>>({
   onAutoSave,
   onValidationChange,
 }: UseFormValidationOptions<T>) {
+  // Ensure validationRules is never null/undefined
+  const safeValidationRules = validationRules || ({} as ValidationRules<T>);
+
   const [state, setState] = useState<FormValidationState<T>>({
     values: initialValues,
     errors: {} as Record<keyof T, string>,
@@ -84,7 +87,7 @@ export function useFormValidation<T extends Record<string, any>>({
     value: T[keyof T],
     showError = true
   ): Promise<string | null> => {
-    const rules = validationRules[field];
+    const rules = safeValidationRules[field];
     if (!rules) return null;
 
     // Required validation
@@ -135,7 +138,7 @@ export function useFormValidation<T extends Record<string, any>>({
     }
 
     return null;
-  }, [validationRules]);
+  }, [safeValidationRules]);
 
   /**
    * Validates all fields
@@ -337,6 +340,84 @@ export function useFormValidation<T extends Record<string, any>>({
     };
   }, [state]);
 
+  /**
+   * Simple validation functions for backward compatibility
+   */
+  const validateForm = useCallback((formData?: T): boolean => {
+    const dataToValidate = formData || state.values;
+    const errors: Record<keyof T, string> = {} as Record<keyof T, string>;
+    let hasErrors = false;
+
+    for (const [field, value] of Object.entries(dataToValidate)) {
+      const rules = safeValidationRules[field as keyof T];
+      if (!rules) continue;
+
+      // Required validation
+      if (rules.required && (!value || (typeof value === 'string' && !value.trim()))) {
+        errors[field as keyof T] = 'This field is required';
+        hasErrors = true;
+        continue;
+      }
+
+      // Skip other validations if field is empty and not required
+      if (!value && !rules.required) continue;
+
+      // String validations
+      if (typeof value === 'string') {
+        if (rules.minLength && value.length < rules.minLength) {
+          errors[field as keyof T] = `Must be at least ${rules.minLength} characters`;
+          hasErrors = true;
+          continue;
+        }
+
+        if (rules.maxLength && value.length > rules.maxLength) {
+          errors[field as keyof T] = `Must be no more than ${rules.maxLength} characters`;
+          hasErrors = true;
+          continue;
+        }
+
+        if (rules.pattern && !rules.pattern.test(value)) {
+          errors[field as keyof T] = 'Invalid format';
+          hasErrors = true;
+          continue;
+        }
+      }
+
+      // Custom validation
+      if (rules.custom) {
+        const customError = rules.custom(value);
+        if (customError) {
+          errors[field as keyof T] = customError;
+          hasErrors = true;
+        }
+      }
+    }
+
+    setState(prev => ({
+      ...prev,
+      errors,
+      isValid: !hasErrors,
+    }));
+
+    return !hasErrors;
+  }, [state.values, safeValidationRules]);
+
+  const clearFieldErrors = useCallback((fields: (keyof T)[]) => {
+    setState(prev => {
+      const newErrors = { ...prev.errors };
+      fields.forEach(field => {
+        delete newErrors[field];
+      });
+      return { ...prev, errors: newErrors };
+    });
+  }, []);
+
+  const setFieldError = useCallback((field: keyof T, error: string) => {
+    setState(prev => ({
+      ...prev,
+      errors: { ...prev.errors, [field]: error },
+    }));
+  }, []);
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -362,6 +443,9 @@ export function useFormValidation<T extends Record<string, any>>({
     // Validation
     validateField,
     validateAllFields,
+    validateForm,
+    clearErrors: clearFieldErrors,
+    setFieldError,
     
     // Utilities
     reset,
